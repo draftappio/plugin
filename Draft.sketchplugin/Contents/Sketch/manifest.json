@@ -1,0 +1,123 @@
+{
+  "author": "DraftApp, Inc.",
+  "commands" : [
+    {
+      "name": "Add Note",
+      "identifier": "commandNote",
+      "shortcut": "ctrl shift 1",
+      "handler" : "commandNote",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Add Overlay",
+      "identifier": "commandOverlay",
+      "shortcut": "ctrl shift 2",
+      "handler" : "commandOverlay",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Add Property",
+      "identifier": "commandProperty",
+      "shortcut": "ctrl shift 3",
+      "handler" : "commandProperty",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Add Size",
+      "identifier": "commandSize",
+      "shortcut": "ctrl shift 4",
+      "handler" : "commandSize",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Add Spacing",
+      "identifier": "commandSpacing",
+      "shortcut": "ctrl shift 5",
+      "handler" : "commandSpacing",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Spec Export",
+      "identifier": "commandExport",
+      "shortcut": "ctrl shift e",
+      "handler" : "commandExport",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Clear marks",
+      "identifier": "commandClear",
+      "shortcut": "",
+      "handler": "commandClear",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Settings",
+      "identifier": "commandSetting",
+      "shortcut": "",
+      "handler": "commandSetting",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Login to Draft",
+      "identifier": "commandLogin",
+      "shortcut": "ctrl shift l",
+      "handler": "commandLogin",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Logout from Draft",
+      "identifier": "commandLogout",
+      "shortcut": "",
+      "handler": "commandLogout",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Visit Draft",
+      "identifier": "commandVisit",
+      "shortcut": "ctrl shift v",
+      "handler": "commandVisit",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Color names",
+      "identifier": "commandColor",
+      "shortcut": "ctrl shift c",
+      "handler": "commandColor",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Make exportable",
+      "identifier": "commandExportable",
+      "shortcut": "ctrl shift s",
+      "handler": "commandExportable",
+      "script": "mark.sketchscript"
+    }
+  ],
+  "menu" : {
+    "title" : "Draft",
+    "isRoot" : false,
+    "shortcut" : "",
+    "items" : [
+      "commandExportable",
+      "commandExport",
+      "commandColor",
+      "-",
+      "commandNote",
+      "commandOverlay",
+      "commandProperty",
+      "commandSize",
+      "commandSpacing",
+      "commandClear",
+      "-",
+      "commandVisit",
+      "commandSetting",
+      "commandLogin",
+      "commandLogout"
+    ]
+  },
+  "identifier": "com.sketch.draftappio",
+  "version": "1.0.0",
+  "description" : "The easiest collaporative tool for designers and developers",
+  "authorEmail" : "support@draftapp.io",
+  "name" : "Draft"
+}
