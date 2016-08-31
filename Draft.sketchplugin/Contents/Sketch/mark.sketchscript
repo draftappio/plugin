@@ -1,48 +1,60 @@
 @import "library/common.js"
 @import "library/MochaJSDelegate.js"
 
-function commandOverlay(context) {
-  SM.init(context, "overlay");
+function commandOverlays(context) {
+    SM.init(context, "mark-overlays");
 }
 
-function commandSize(context) {
-  SM.init(context, "size");
+function commandSizes(context) {
+    if(NSEvent.modifierFlags() == 917504){
+        SM.init(context, "mark-sizes");
+    }
+    else{
+        SM.init(context, "lite-sizes");
+    }
 }
 
-function commandSpacing(context) {
-  SM.init(context, "spacing");
+function commandSpacings(context) {
+    if(NSEvent.modifierFlags() == 917504){
+        SM.init(context, "mark-spacings");
+    }
+    else{
+        SM.init(context, "lite-spacings");
+    }
 }
 
-function commandProperty(context) {
-  SM.init(context, "property");
+function commandProperties(context) {
+    
+    if(NSEvent.modifierFlags() == 917504){
+        SM.init(context, "mark-properties");
+    }
+    else{
+        SM.init(context, "lite-properties");
+    }
 }
 
 function commandNote(context) {
-  SM.init(context, "note");
+    SM.init(context, "mark-note");
 }
 
 function commandClear(context) {
-  SM.init(context, "clear");
+    SM.init(context, "clear");
 }
 
 function commandColor(context) {
-  SM.init(context, "color");
+    SM.init(context, "color");
 }
 
 function commandExportable(context) {
-  SM.init(context, "exportable");
+    SM.init(context, "exportable");
 }
 
-function commandSetting(context) {
-  SM.init(context, "setting");
+function commandSettings(context) {
+    SM.init(context, "settings");
 }
 
-function commandLogin(context) {
-  SM.init(context, "login");
-}
-
-function commandLogout(context) {
-  SM.init(context, "logout");
+function commandExport(context) {
+    SM.init(context, "export");
 }
 
 function commandToolBar(context) {
@@ -51,8 +63,4 @@ function commandToolBar(context) {
 
 function commandVisit(context) {
   NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("https://draftapp.io"));
-}
-
-function commandExport(context) {
-  SM.init(context, "export");
 }
