@@ -7,9 +7,8 @@ var I18N = {},
     language = "";
 
 function _(str, data){
-  var str = (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str;
-
-  var idx = -1;
+  var str = (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str,
+  idx = -1;
   return str.replace(/\%\@/gi, function(){
     idx++;
     return data[idx];
@@ -18,6 +17,8 @@ function _(str, data){
 
 var SM = {
   init: function(context, command){
+    coscript.setShouldKeepAround(true);
+    this.context = context;
     this.extend(context);
     this.document = context.document;
     this.documentData = this.document.documentData();
@@ -26,8 +27,16 @@ var SM = {
     this.page = this.document.currentPage();
     this.artboard = this.page.currentArtboard();
     this.current = this.artboard || this.page;
-    this.pluginRoot = this.scriptPath.stringByDeletingLastPathComponent().stringByDeletingLastPathComponent().stringByDeletingLastPathComponent();
+    this.pluginRoot = this.scriptPath
+      .stringByDeletingLastPathComponent()
+      .stringByDeletingLastPathComponent()
+      .stringByDeletingLastPathComponent();
     this.pluginSketch = this.pluginRoot + "/Contents/Sketch/library";
+
+    if(command == "toolbar"){
+      this.ToolBar();
+      return false;
+    }
 
     if(NSFileManager.defaultManager().fileExistsAtPath(this.pluginSketch + "/i18n/" + lang + ".json")){
       language = NSString.stringWithContentsOfFile_encoding_error(this.pluginSketch + "/i18n/" + lang + ".json", NSUTF8StringEncoding, nil);
@@ -38,38 +47,51 @@ var SM = {
 
     this.symbolsPage = this.find({key: "(name != NULL) && (name == %@)", match: "Symbols"}, this.document);
     this.symbolsPage = (this.symbolsPage.count)? this.symbolsPage[0]: this.symbolsPage;
-
     if(!this.symbolsPage){
       this.symbolsPage = this.document.addBlankPage();
       this.symbolsPage.setName("Symbols");
       this.document.setCurrentPage(this.page);
     }
 
+
     this.configs = this.getConfigs();
 
-    if(!this.configs){
+    if(!this.configs && command != "settings"){
       if(!this.settingsPanel()) return false;
     }
 
-    if(!this.readAccessToken() && command != "login") {
-      this.loginPanel();
-    }
+    if(!this.readAccessToken() && command != "login") this.loginPanel();
 
     switch (command) {
-      case "overlay":
-        this.mark("overlay");
+      case "mark-overlays":
+        this.markOverlays();
         break;
-      case "size":
-        this.mark("sizes");
+      case "lite-sizes":
+        this.liteSizes();
         break;
-      case "spacing":
-        this.mark("spacings");
+      case "lite-spacings":
+        this.liteSpacings();
         break;
-      case "property":
-        this.mark("properties");
+      case "lite-properties":
+        this.liteProperties();
         break;
-      case "note":
-        this.mark("note");
+      case "mark-sizes":
+        this.markSizes();
+        break;
+      case "mark-spacings":
+        this.markSpacings();
+        break;
+      case "mark-properties":
+        this.markProperties();
+        break;
+      case "mark-note":
+        this.markNote();
+        break;
+      case "locked":
+        this.toggleLocked();
+        break;
+      case "hidden":
+        this.toggleHidden();
         break;
       case "clear":
         this.clearAllMarks();
@@ -80,7 +102,7 @@ var SM = {
       case "exportable":
         this.makeExportable();
         break;
-      case "setting":
+      case "settings":
         this.settingsPanel();
         break;
       case "login":
@@ -389,6 +411,12 @@ SM.extend({
 
     if(!style) return "";
     return this.toJSString(style.name());
+  },
+  updateContext: function(){
+    this.context.document = NSDocumentController.sharedDocumentController().currentDocument();
+    this.context.selection = this.context.document.selectedLayers();
+
+    return this.context;
   }
 });
 
@@ -837,6 +865,163 @@ SM.extend({
     };
   }
 });
+// ToolBar.js
+
+SM.extend({
+  ToolBar: function(){
+    var self = this,
+    identifier = "com.utom.measure",
+    threadDictionary = NSThread.mainThread().threadDictionary(),
+    ToolBar = threadDictionary[identifier];
+
+    if(!ToolBar){
+      ToolBar = NSPanel.alloc().init();
+      ToolBar.setStyleMask(NSTitledWindowMask + NSFullSizeContentViewWindowMask);
+      ToolBar.setBackgroundColor(NSColor.colorWithRed_green_blue_alpha(0.10, 0.10, 0.10, 1));
+      ToolBar.setTitleVisibility(NSWindowTitleHidden);
+      ToolBar.setTitlebarAppearsTransparent(true);
+
+      ToolBar.setFrame_display(NSMakeRect(0, 0, 584, 48), false);
+      ToolBar.setMovableByWindowBackground(true);
+      ToolBar.becomeKeyWindow();
+      ToolBar.setLevel(NSFloatingWindowLevel);
+
+      var contentView = ToolBar.contentView(),
+      getImage = function(size, name){
+        var isRetinaDisplay = (NSScreen.mainScreen().backingScaleFactor() > 1)? true: false;
+        suffix = (isRetinaDisplay)? "@2x": "",
+        imageURL = NSURL.fileURLWithPath(self.pluginSketch + "/toolbar/" + name + suffix + ".png"),
+        image = NSImage.alloc().initWithContentsOfURL(imageURL);
+
+        return image
+      },
+      addButton = function(rect, name, callAction){
+        var button = NSButton.alloc().initWithFrame(rect),
+        image = getImage(rect.size, name);
+
+        button.setImage(image);
+        button.setBordered(false);
+        button.sizeToFit();
+        button.setButtonType(NSMomentaryChangeButton)
+          button.setCOSJSTargetFunction(callAction);
+        button.setAction("callAction:");
+        return button;
+      },
+      addImage = function(rect, name){
+        var view = NSImageView.alloc().initWithFrame(rect),
+        image = getImage(rect.size, name);
+        view.setImage(image);
+        return view;
+      },
+      closeButton = addButton( NSMakeRect(14, 14, 20, 20), "icon-close",
+          function(sender){
+            coscript.setShouldKeepAround(false);
+            threadDictionary.removeObjectForKey(identifier);
+            ToolBar.close();
+          }),
+      overlayButton = addButton( NSMakeRect(64, 14, 20, 20), "icon-overlay",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "mark-overlays");
+          }),
+      sizesButton = addButton( NSMakeRect(112, 14, 20, 20), "icon-sizes",
+          function(sender){
+            self.updateContext();
+            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
+              self.init(self.context, "mark-sizes");
+            }
+            else{
+              self.init(self.context, "lite-sizes");
+            }
+          }),
+      spacingsButton = addButton( NSMakeRect(160, 14, 20, 20), "icon-spacings",
+          function(sender){
+            self.updateContext();
+            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
+              self.init(self.context, "mark-spacings");
+            }
+            else{
+              self.init(self.context, "lite-spacings");
+            }
+          }),
+      propertiesButton = addButton( NSMakeRect(208, 14, 20, 20), "icon-properties",
+          function(sender){
+            self.updateContext();
+            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
+              self.init(self.context, "mark-properties");
+            }
+            else{
+              self.init(self.context, "lite-properties");
+            }
+
+          }),
+      notesButton = addButton( NSMakeRect(258, 14, 20, 20), "icon-notes",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "mark-note");
+          }),
+      exportableButton = addButton( NSMakeRect(306, 14, 20, 20), "icon-slice",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "exportable");
+          }),
+      colorsButton = addButton( NSMakeRect(354, 14, 20, 20), "icon-colors",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "color");
+          }),
+      exportButton = addButton( NSMakeRect(402, 14, 20, 20), "icon-export",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "export");
+          }),
+      hiddenButton = addButton( NSMakeRect(452, 14, 20, 20), "icon-hidden",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "hidden");
+          }),
+      lockedButton = addButton( NSMakeRect(500, 14, 20, 20), "icon-locked",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "locked");
+          }),
+      settingsButton = addButton( NSMakeRect(548, 14, 20, 20), "icon-settings",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "settings");
+          }),
+      divider1 = addImage( NSMakeRect(48, 8, 2, 32), "divider"),
+      divider2 = addImage( NSMakeRect(242, 8, 2, 32), "divider"),
+      divider3 = addImage( NSMakeRect(436, 8, 2, 32), "divider");
+
+      contentView.addSubview(closeButton);
+      contentView.addSubview(overlayButton);
+      contentView.addSubview(sizesButton);
+      contentView.addSubview(spacingsButton);
+      contentView.addSubview(propertiesButton);
+
+      contentView.addSubview(notesButton);
+      contentView.addSubview(exportableButton);
+      contentView.addSubview(colorsButton);
+      contentView.addSubview(exportButton);
+
+      contentView.addSubview(hiddenButton);
+      contentView.addSubview(lockedButton);
+      contentView.addSubview(settingsButton);
+
+      contentView.addSubview(divider1);
+      contentView.addSubview(divider2);
+      contentView.addSubview(divider3);
+
+      threadDictionary[identifier] = ToolBar;
+
+      ToolBar.center();
+      ToolBar.makeKeyAndOrderFront(nil);
+    }
+
+
+  }
+})
 
 // Panel.js
 SM.extend({
@@ -852,22 +1037,24 @@ SM.extend({
         density: 2,
         unit: "dp/sp"
       },
-      callback: function(data) {
-        return data;
-      }
+      callback: function( data ){ return data; }
     }),
     result = false;
     options.url = encodeURI("file://" + options.url);
 
-    COScript.currentCOScript().setShouldKeepAround_(true);
-
     var frame = NSMakeRect(0, 0, options.width, (options.height + 32)),
-    titleBgColor = NSColor.colorWithRed_green_blue_alpha(1, 1, 1, 1),
+    titleBgColor = NSColor.colorWithRed_green_blue_alpha(.9, .9, .9, 1),
     contentBgColor = NSColor.colorWithRed_green_blue_alpha(1, 1, 1, 1);
 
     var Panel = NSPanel.alloc().init();
     Panel.title = "Draft";
-    Panel.setFrame_display(frame, true);
+    Panel.setTitleVisibility(NSWindowTitleVisible);
+    Panel.setTitlebarAppearsTransparent(true);
+    Panel.standardWindowButton(NSWindowCloseButton).setHidden(false);
+    Panel.standardWindowButton(NSWindowMiniaturizeButton).setHidden(true);
+    Panel.standardWindowButton(NSWindowZoomButton).setHidden(true);
+    Panel.setFrame_display(frame, false);
+    Panel.setBackgroundColor(contentBgColor);
 
     var contentView = Panel.contentView(),
     webView = WebView.alloc().initWithFrame(NSMakeRect(0, 0, options.width, options.height)),
@@ -896,7 +1083,6 @@ SM.extend({
         windowObject.evaluateWebScript(SMAction);
         windowObject.evaluateWebScript(language);
         windowObject.evaluateWebScript(DOMReady);
-        COScript.currentCOScript().setShouldKeepAround_(false);
       }),
       "webView:didChangeLocationWithinPageForFrame:": (function(webView, webFrame){
         var request = NSURL.URLWithString(webView.mainFrameURL()).fragment();
@@ -921,7 +1107,6 @@ SM.extend({
         else if(request == "complete"){
 
         }
-        COScript.currentCOScript().setShouldKeepAround_(false);
       })
     });
 
@@ -946,12 +1131,13 @@ SM.extend({
       self.wantsStop = true;
       Panel.orderOut(nil);
       NSApp.stopModal();
+      // NSApp.endSheet(sender.window());
     });
     closeButton.setAction("callAction:");
 
     var titlebarView = contentView.superview().titlebarViewController().view(),
     titlebarContainerView = titlebarView.superview();
-    // closeButton.setFrameOrigin(NSMakePoint(8, 8));
+    closeButton.setFrameOrigin(NSMakePoint(8, 8));
     titlebarContainerView.setFrame(NSMakeRect(0, options.height, options.width, 32));
     titlebarView.setFrameSize(NSMakeSize(options.width, 32));
     titlebarView.setTransparent(true);
@@ -982,8 +1168,8 @@ SM.extend({
     }
 
     return this.SMPanel({
-      width: 240,
-      height: 316,
+      width: 440,
+      height: 380,
       data: data,
       callback: function( data ){
         self.configs = self.setConfigs(data);
@@ -1002,7 +1188,7 @@ SM.extend({
     return this.SMPanel({
       url: this.pluginSketch + "/panel/sizes.html",
       width: 440,
-      height: 380,
+      height: 320,
       data: data,
       callback: function( data ){
         self.configs = self.setConfigs({
@@ -1020,8 +1206,8 @@ SM.extend({
 
     return this.SMPanel({
       url: this.pluginSketch + "/panel/spacings.html",
-      width: 440,
-      height: 320,
+      width: 240,
+      height: 314,
       data: data,
       callback: function( data ){
         self.configs = self.setConfigs({
@@ -1033,7 +1219,6 @@ SM.extend({
   loginPanel: function(){
     var self = this,
     data = {};
-
     return this.SMPanel({
       url: this.pluginSketch + "/panel/login.html",
       width: 440,
@@ -1049,7 +1234,6 @@ SM.extend({
   alreadyLoggedPanel: function() {
     var self = this,
     data = {};
-
     return this.SMPanel({
       url: this.pluginSketch + "/panel/alreadyLogged.html",
       width: 304,
@@ -1061,7 +1245,6 @@ SM.extend({
   loggedoutPanel: function() {
     var self = this,
     data = {};
-
     return this.SMPanel({
       url: this.pluginSketch + "/panel/loggedout.html",
       width: 304,
@@ -1090,132 +1273,8 @@ SM.extend({
   }
 });
 
-// mark.js
+// mark-base.js
 SM.extend({
-  mark: function(type){
-    var self = this,
-    selection = this.selection;
-
-    if(type == "sizes"){
-      if( selection.count() <= 0 ){
-        this.message(_("Select a layer to make marks!"));
-        return false;
-      }
-      if(!this.sizesPanel()) return false;
-      var sizeStyles = {
-        layer: this.sharedLayerStyle("@Size / Layer", this.colors.size.layer),
-        text: this.sharedTextStyle("@Size / Text", this.colors.size.text, 2)
-      };
-
-      for (var i = 0; i < selection.count(); i++) {
-        var target = selection[i],
-          objectID = target.objectID();
-
-        if(this.configs.sizes.widthPlacement){
-          this.sizes({
-            name: "WIDTH#" + objectID,
-            type: "width",
-            target: target,
-            placement: this.configs.sizes.widthPlacement,
-            styles: sizeStyles,
-            byPercentage: this.configs.sizes.byPercentage
-          });
-        }
-
-        if(this.configs.sizes.heightPlacement){
-          this.sizes({
-            name: "HEIGHT#" + objectID,
-            type: "height",
-            target: target,
-            placement: this.configs.sizes.heightPlacement,
-            styles: sizeStyles,
-            byPercentage: this.configs.sizes.byPercentage
-          });
-        }
-      }
-    }
-    else if(type == "spacings"){
-      if( !(selection.count() > 0 && selection.count() < 3) ){
-        this.message(_("Select 1 or 2 layers to make marks!"));
-        return false;
-      }
-      if(!this.spacingsPanel()) return false;
-      var target = (selection.count() == 1)? selection[0]: selection[1],
-        layer = (selection.count() == 1)? this.current: selection[0],
-        placements = ["top", "right", "bottom", "left"];
-
-        if( this.isIntersect(this.getRect(target), this.getRect(layer)) ){
-          placements = this.configs.spacings.placements;
-        }
-
-        var spacingStyles = {
-          layer: this.sharedLayerStyle("@Spacing / Layer", this.colors.spacing.layer),
-          text: this.sharedTextStyle("@Spacing / Text", this.colors.spacing.text, 2)
-        };
-        placements.forEach(function(placement) {
-          self.spacings({
-            target: target,
-            layer: layer,
-            placement: placement,
-            styles: spacingStyles,
-            byPercentage: self.configs.spacings.byPercentage
-          });
-        });
-    }
-    else if(type == "properties"){
-      if( selection.count() <= 0 ){
-        this.message(_("Select a layer to make marks!"));
-        return false;
-      }
-
-      var target = selection[0];
-
-      if( /PROPERTY\#/.exec(target.parentGroup().name()) ){
-        this.resizeProperties(target.parentGroup());
-      }
-      else{
-        if(!this.propertiesPanel()) return false;
-
-        for (var i = 0; i < selection.count(); i++) {
-          var target = selection[i];
-          this.properties({
-            target: target,
-            placement: this.configs.properties.placement,
-            properties: this.configs.properties.properties
-          });
-        }
-      }
-    }
-    else if( type == "overlay"){
-      if( selection.count() <= 0 ){
-        this.message(_("Select a layer to make marks!"));
-        return false;
-      }
-      for (var i = 0; i < selection.count(); i++) {
-        this.overlay(selection[i]);
-      }
-    }
-    else if( type == "note"){
-      if( selection.count() <= 0 ){
-        this.message(_("Select a text layer to make marks!"));
-        return false;
-      }
-      var target = selection[0];
-
-      if( /NOTE\#/.exec(target.parentGroup().name()) && this.is(target, MSTextLayer) ){
-        this.resizeNote(target.parentGroup());
-      }
-      else{
-        for (var i = 0; i < selection.count(); i++) {
-          var target = selection[i];
-          if(this.is(target, MSTextLayer)){
-            this.note(target);
-          }
-        }
-      }
-    }
-
-  },
   sizes: function( options ){
     var options = this.extend(options, {}),
     name = options.name,
@@ -1407,7 +1466,7 @@ SM.extend({
     container.addLayers([overlay]);
 
     overlay.setStyle(overlayStyle);
-    overlay.setName("overlayer");
+    overlay.setName("overlay");
     overlayRect.setX(targetRect.x);
     overlayRect.setY(targetRect.y);
     overlayRect.setWidth(targetRect.width);
@@ -1476,9 +1535,9 @@ SM.extend({
             content.push("color: " + color);
           }
           else if( self.is(target, MSShapeGroup) ){
-            var fillsJSON = self.getFills(targetStyle),
-              fillJSON = fillsJSON.pop();
-
+            var fillsJSON = self.getFills(targetStyle);
+            if(fillsJSON.length <= 0) return false;
+            var fillJSON = fillsJSON.pop();
             content.push("fill: " + self.fillTypeContent(fillJSON))
           }
 
@@ -1486,7 +1545,7 @@ SM.extend({
         case "border":
           var bordersJSON = self.getBorders(targetStyle);
           if(bordersJSON.length <= 0) return false;
-          borderJSON = bordersJSON.pop();
+          var borderJSON = bordersJSON.pop();
           content.push("border: " + self.convertUnit(borderJSON.thickness) + " " + borderJSON.position + "\r\n * " + self.fillTypeContent(borderJSON) );
           break;
         case "opacity":
@@ -1561,39 +1620,249 @@ SM.extend({
   }
 });
 
-// lite.js
+// marks.js
 SM.extend({
-  lite: function( type ){
-    if( this.selection.count() <= 0 ){
+  markOverlays: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( selection.count() <= 0 ){
       this.message(_("Select a layer to make marks!"));
       return false;
     }
-    var target = this.selection[0],
-    objectID = target.objectID(),
-    liteStyle = {
-      layer: this.sharedLayerStyle("@Lite / Layer", this.colors.lite.layer),
-      text: this.sharedTextStyle("@Lite / Text", this.colors.lite.text, 2)
+    for (var i = 0; i < selection.count(); i++) {
+      this.overlay(selection[i]);
+    }
+  },
+  markSizes: function(){
+    var self = this,
+    selection = this.selection;
+
+
+    if( selection.count() <= 0 ){
+      this.message(_("Select a layer to make marks!"));
+      return false;
+    }
+
+    if(this.sizesPanel()){
+      var sizeStyles = {
+        layer: this.sharedLayerStyle("@Size / Layer", this.colors.size.layer),
+        text: this.sharedTextStyle("@Size / Text", this.colors.size.text, 2)
+      };
+
+      for (var i = 0; i < selection.count(); i++) {
+        var target = selection[i],
+          objectID = target.objectID();
+
+        if(this.configs.sizes.widthPlacement){
+          this.sizes({
+            name: "WIDTH#" + objectID,
+            type: "width",
+            target: target,
+            placement: this.configs.sizes.widthPlacement,
+            styles: sizeStyles,
+            byPercentage: this.configs.sizes.byPercentage
+          });
+        }
+
+        if(this.configs.sizes.heightPlacement){
+          this.sizes({
+            name: "HEIGHT#" + objectID,
+            type: "height",
+            target: target,
+            placement: this.configs.sizes.heightPlacement,
+            styles: sizeStyles,
+            byPercentage: this.configs.sizes.byPercentage
+          });
+        }
+      }
+    }
+  },
+  markSpacings: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( !(selection.count() > 0 && selection.count() < 3) ){
+      this.message(_("Select 1 or 2 layers to make marks!"));
+      return false;
+    }
+
+    if(this.spacingsPanel()){
+      var target = (selection.count() == 1)? selection[0]: selection[1],
+        layer = (selection.count() == 1)? this.current: selection[0],
+        placements = ["top", "right", "bottom", "left"],
+        spacingStyles = {
+          layer: this.sharedLayerStyle("@Spacing / Layer", this.colors.spacing.layer),
+          text: this.sharedTextStyle("@Spacing / Text", this.colors.spacing.text, 2)
+        };
+
+        if( this.isIntersect(this.getRect(target), this.getRect(layer)) ){
+          placements = this.configs.spacings.placements;
+        }
+
+        placements.forEach(function(placement) {
+          self.spacings({
+            target: target,
+            layer: layer,
+            placement: placement,
+            styles: spacingStyles,
+            byPercentage: self.configs.spacings.byPercentage
+          });
+        });
+    }
+  },
+  markProperties: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( selection.count() <= 0 ){
+      this.message(_("Select a layer to make marks!"));
+      return false;
+    }
+
+    var target = selection[0];
+
+    if(!this.propertiesPanel()) return false;
+
+    for (var i = 0; i < selection.count(); i++) {
+      var target = selection[i];
+      this.properties({
+        target: target,
+        placement: this.configs.properties.placement,
+        properties: this.configs.properties.properties
+      });
+    }
+  },
+  liteSizes: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( selection.count() <= 0 ){
+      this.message(_("Select a layer to make marks!"));
+      return false;
+    }
+
+    var sizeStyles = {
+      layer: this.sharedLayerStyle("@Size / Layer", this.colors.size.layer),
+      text: this.sharedTextStyle("@Size / Text", this.colors.size.text, 2)
     };
 
-    if(type == "width"){
+    for (var i = 0; i < selection.count(); i++) {
+      var target = selection[i],
+        targetRect = self.getRect(target),
+        objectID = target.objectID(),
+        distance = self.getDistance(targetRect),
+        widthPlacement =
+          distance.top < distance.bottom? "bottom":
+          distance.top == distance.bottom? "middle":
+          "top",
+        heightPlacement =
+          distance.left > distance.right? "left":
+          distance.left == distance.right? "center":
+          "right";
+
       this.sizes({
-        name: "LITE#" + objectID,
+        name: "WIDTH#" + objectID,
         type: "width",
         target: target,
-        placement: "middle",
-        styles: liteStyle
+        placement: widthPlacement,
+        styles: sizeStyles,
+        byPercentage: false
       });
-      this.removeLayer(target);
-    }
-    else if(type == "height"){
+
       this.sizes({
-        name: "LITE#" + objectID,
+        name: "HEIGHT#" + objectID,
         type: "height",
         target: target,
-        placement: "center",
-        styles: liteStyle
+        placement: heightPlacement,
+        styles: sizeStyles,
+        byPercentage: false
       });
-      this.removeLayer(target);
+
+    }
+  },
+  liteSpacings: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( !(selection.count() > 0 && selection.count() < 3) ){
+      this.message(_("Select 1 or 2 layers to make marks!"));
+      return false;
+    }
+
+    var target = (selection.count() == 1)? selection[0]: selection[1],
+    layer = (selection.count() == 1)? this.current: selection[0],
+    spacingStyles = {
+      layer: this.sharedLayerStyle("@Spacing / Layer", this.colors.spacing.layer),
+      text: this.sharedTextStyle("@Spacing / Text", this.colors.spacing.text, 2)
+    },
+    placements = ["top", "right", "bottom", "left"];
+
+    placements.forEach(function(placement) {
+      self.spacings({
+        target: target,
+        layer: layer,
+        placement: placement,
+        styles: spacingStyles,
+        byPercentage: false
+      });
+    });
+  },
+  liteProperties: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( selection.count() <= 0 ){
+      this.message(_("Select a layer to make marks!"));
+      return false;
+    }
+
+    var target = selection[0];
+
+    if( /PROPERTY\#/.exec(target.parentGroup().name()) ){
+      this.resizeProperties(target.parentGroup());
+    }
+    else{
+      for (var i = 0; i < selection.count(); i++) {
+        var target = selection[i],
+          targetRect = this.getRect(target),
+          distance = this.getDistance(targetRect),
+          placement = {};
+
+        placement[distance.right] = "right";
+        placement[distance.bottom] = "bottom";
+        placement[distance.left] = "left";
+        placement[distance.top] = "top";
+
+        this.properties({
+          target: target,
+          placement: placement[ Math.max(distance.top, distance.right, distance.bottom, distance.left) ],
+          properties: ["color", "border", "opacity", "radius", "shadow", "font-size", "font-face", "character", "line-height"]
+        });
+      }
+    }
+  },
+  markNote: function(){
+    var self = this,
+    selection = this.selection;
+
+    if( selection.count() <= 0 ){
+      this.message(_("Select a text layer to make marks!"));
+      return false;
+    }
+
+    var target = selection[0];
+
+    if( /NOTE\#/.exec(target.parentGroup().name()) && this.is(target, MSTextLayer) ){
+      this.resizeNote(target.parentGroup());
+    }
+    else{
+      for (var i = 0; i < selection.count(); i++) {
+        var target = selection[i];
+        if(this.is(target, MSTextLayer)){
+          this.note(target);
+        }
+      }
     }
   },
   note: function(target){
@@ -2244,6 +2513,17 @@ SM.extend({
           self.artboardsData.push(artboard);
         }
       }
+      pageData.artboards.sort(function(a, b) {
+        var nameA = a.name.toUpperCase(),
+        nameB = b.name.toUpperCase();
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+        return 0;
+      });
       data.pages.push(pageData);
     }
     return this.SMPanel({
@@ -2306,131 +2586,141 @@ SM.extend({
         self.single = false;
         self.wantsStop = false;
 
-        coscript.shouldKeepAround = true
-          coscript.scheduleWithRepeatingInterval_jsFunction( 0, function( interval ){
-            // self.message('Processing layer ' + idx + ' of ' + self.allCount);
-            processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
-            idx++;
+        coscript.scheduleWithRepeatingInterval_jsFunction( 0, function( interval ){
+          // self.message('Processing layer ' + idx + ' of ' + self.allCount);
+          processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
+          idx++;
 
-            if(!data.artboards[artboardIndex]){
-              data.artboards.push({layers: [], notes: []});
-              self.maskCache = [];
-              self.maskObjectID = undefined;
-              self.maskRect = undefined;
-            }
+          if(!data.artboards[artboardIndex]){
+            data.artboards.push({layers: [], notes: []});
+            self.maskCache = [];
+            self.maskObjectID = undefined;
+            self.maskRect = undefined;
+          }
 
-            if(!exporting) {
-              exporting = true;
-              var artboard = self.selectionArtboards[artboardIndex],
-              page = artboard.parentGroup(),
-              layer = artboard.children()[layerIndex];
+          if(!exporting) {
+            exporting = true;
+            var artboard = self.selectionArtboards[artboardIndex],
+            page = artboard.parentGroup(),
+            layer = artboard.children()[layerIndex];
 
-              // log( page.name() + ' - ' + artboard.name() + ' - ' + layer.name());
-              self.getLayer(
-                  artboard, // Sketch artboard element
-                  layer, // Sketch layer element
-                  data.artboards[artboardIndex] // Save to data
-                  );
-
-
-              layerIndex++;
-              exporting = false;
-
-              if( self.is(layer, MSArtboardGroup) ){
-                var objectID = artboard.objectID(),
-                  artboardRect = self.getRect(artboard),
-                  page = artboard.parentGroup(),
-                  // name = self.toSlug(self.toHTMLEncode(page.name()) + ' ' + self.toHTMLEncode(artboard.name()));
-                  name = self.toSlug(page.name() + ' ' + artboard.name());
-
-                data.artboards[artboardIndex].pageName = self.toHTMLEncode(page.name());
-                data.artboards[artboardIndex].pageObjectID = self.toJSString(page.objectID());
-                data.artboards[artboardIndex].name = self.toHTMLEncode(artboard.name());
-                data.artboards[artboardIndex].objectID = self.toJSString(artboard.objectID());
-                data.artboards[artboardIndex].width = artboardRect.width;
-                data.artboards[artboardIndex].height = artboardRect.height;
+            // log( page.name() + ' - ' + artboard.name() + ' - ' + layer.name());
+            self.getLayer(
+                artboard, // Sketch artboard element
+                layer, // Sketch layer element
+                data.artboards[artboardIndex] // Save to data
+                );
 
 
-                if(!self.configs.exportOption){
-                  var imageURL = NSURL.fileURLWithPath(self.exportImage({
-                    layer: artboard,
-                    scale: 2,
-                    name: objectID
-                  })),
-                    imageData = NSData.dataWithContentsOfURL(imageURL),
-                    imageBase64 = imageData.base64EncodedStringWithOptions(0);
-                  data.artboards[artboardIndex].imageBase64 = 'data:image/png;base64,' + imageBase64;
-                  var newData =  JSON.parse(JSON.stringify(data));
-                  newData.artboards = [data.artboards[artboardIndex]];
-                  log("exporting");
-                  log(newData);
-                  self.writeFile({
-                    content: self.template(template, {lang: language, data: JSON.stringify(newData).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
-                    path: self.toJSString(savePath),
-                    fileName: name + ".html"
-                  });
-                }
-                else{
-                  // data.artboards[artboardIndex].imagePath = "preview/" + objectID + ".png";
-                  data.artboards[artboardIndex].imagePath = "preview/" + encodeURI(name) + ".png";
+            layerIndex++;
+            exporting = false;
 
-                  self.exportImage({
-                    layer: artboard,
-                    path: self.toJSString(savePath) + "/preview",
-                    scale: 2,
-                    // name: objectID,
-                    name: name
-                  });
+            if( self.is(layer, MSArtboardGroup) ){
+              var objectID = artboard.objectID(),
+                artboardRect = self.getRect(artboard),
+                page = artboard.parentGroup(),
+                // name = self.toSlug(self.toHTMLEncode(page.name()) + ' ' + self.toHTMLEncode(artboard.name()));
+                slug = self.toSlug(page.name() + ' ' + artboard.name());
 
-                  self.writeFile({
-                    content: "<meta http-equiv=\"refresh\" content=\"0;url=../index.html#artboard" + artboardIndex + "\">",
-                    path: self.toJSString(savePath) + "/links",
-                    fileName: name + ".html"
-                  });
-                }
+              data.artboards[artboardIndex].pageName = self.toHTMLEncode(page.name());
+              data.artboards[artboardIndex].pageObjectID = self.toJSString(page.objectID());
+              data.artboards[artboardIndex].name = self.toHTMLEncode(artboard.name());
+              data.artboards[artboardIndex].slug = slug;
+              data.artboards[artboardIndex].objectID = self.toJSString(artboard.objectID());
+              data.artboards[artboardIndex].width = artboardRect.width;
+              data.artboards[artboardIndex].height = artboardRect.height;
 
 
-                layerIndex = 0;
-                artboardIndex++;
+              if(!self.configs.exportOption){
+                var imageURL = NSURL.fileURLWithPath(self.exportImage({
+                  layer: artboard,
+                  scale: 2,
+                  name: objectID
+                })),
+                  imageData = NSData.dataWithContentsOfURL(imageURL),
+                  imageBase64 = imageData.base64EncodedStringWithOptions(0);
+                data.artboards[artboardIndex].imageBase64 = 'data:image/png;base64,' + imageBase64;
+                var newData =  JSON.parse(JSON.stringify(data));
+                newData.artboards = [data.artboards[artboardIndex]];
+                self.writeFile({
+                  content: self.template(template, {lang: language, data: JSON.stringify(newData).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
+                  path: self.toJSString(savePath),
+                  fileName: slug + ".html"
+                });
+              }
+              else{
+                // data.artboards[artboardIndex].imagePath = "preview/" + objectID + ".png";
+                data.artboards[artboardIndex].imagePath = "preview/" + encodeURI(slug) + ".png";
+
+                self.exportImage({
+                  layer: artboard,
+                  path: self.toJSString(savePath) + "/preview",
+                  scale: 2,
+                  // name: objectID,
+                  name: slug
+                });
+
+                self.writeFile({
+                  content: "<meta http-equiv=\"refresh\" content=\"0;url=../index.html#artboard" + artboardIndex + "\">",
+                  path: self.toJSString(savePath) + "/links",
+                  fileName: slug + ".html"
+                });
               }
 
-              if(artboardIndex >= self.selectionArtboards.length){
-                if(self.slices.length > 0){
-                  data.slices = self.slices;
-                }
 
-                if(self.configs.colors && self.configs.colors.length > 0){
-                  data.colors = self.configs.colors;
-                  self.writeFile({
-                    content: JSON.stringify(self.configs.colors),
-                    path: self.toJSString(savePath),
-                    fileName: "colors.json"
-                  });
-                }
+              layerIndex = 0;
+              artboardIndex++;
+            }
 
-                var selectingPath = savePath;
-                if(self.configs.exportOption){
-                  self.writeFile({
-                    content: self.template(template, {lang: language, data: JSON.stringify(data).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
-                    path: self.toJSString(savePath),
-                    fileName: "index.html"
-                  });
-                  selectingPath = savePath + "/index.html";
-                }
-                NSWorkspace.sharedWorkspace().activateFileViewerSelectingURLs(NSArray.arrayWithObjects(NSURL.fileURLWithPath(selectingPath)));
-
-                self.message(_("Export complete!"));
-                self.wantsStop = true;
+            if(artboardIndex >= self.selectionArtboards.length){
+              if(self.slices.length > 0){
+                data.slices = self.slices;
               }
+
+              if(self.configs.colors && self.configs.colors.length > 0){
+                data.colors = self.configs.colors;
+                self.writeFile({
+                  content: JSON.stringify(self.configs.colors),
+                  path: self.toJSString(savePath),
+                  fileName: "colors.json"
+                });
+              }
+
+              var selectingPath = savePath;
+              if(self.configs.exportOption){
+                data.artboards.sort(function(a, b) {
+                  var slugA = a.slug.toUpperCase(),
+                  slugB = b.slug.toUpperCase();
+                  if (slugA < slugB) {
+                    return -1;
+                  }
+                  if (slugA > slugB) {
+                    return 1;
+                  }
+                  return 0;
+                });
+
+                self.writeFile({
+                  content: self.template(template, {lang: language, data: JSON.stringify(data).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
+                  path: self.toJSString(savePath),
+                  fileName: "index.html"
+                });
+                selectingPath = savePath + "/index.html";
+              }
+              NSWorkspace.sharedWorkspace().activateFileViewerSelectingURLs(NSArray.arrayWithObjects(NSURL.fileURLWithPath(selectingPath)));
+
+              self.message(_("Export complete!"));
+              self.wantsStop = true;
             }
+          }
 
-            if( self.wantsStop === true ){
-              coscript.shouldKeepAround = false;
-              return interval.cancel();
-            }
+          if( self.wantsStop === true ){
+            coscript.setShouldKeepAround(false);
+            return interval.cancel();
+          }
 
 
-          });
+        });
       }
     }
   },
@@ -2562,7 +2852,7 @@ SM.extend({
     this.checkSymbol(artboard, layer, layerData, data);
   },
   template: function(content, data) {
-    var content = content.replace(new RegExp("\\<!-- <\\!\\-\\-\\s([^\\s\\-\\-\\> -->]+)\\s\\-\\-\\>", "gi"), function($0, $1) {
+    var content = content.replace(new RegExp("\\<\\!\\-\\-\\s([^\\s\\-\\-\\>]+)\\s\\-\\-\\>", "gi"), function($0, $1) {
       if ($1 in data) {
         return data[$1];
       } else {

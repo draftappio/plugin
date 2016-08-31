@@ -2,38 +2,45 @@
   "author": "DraftApp, Inc.",
   "commands" : [
     {
+      "name": "ToolBar",
+      "identifier": "commandToolBar",
+      "shortcut": "ctrl shift b",
+      "handler" : "commandToolBar",
+      "script": "mark.sketchscript"
+    },
+    {
       "name": "Add Note",
       "identifier": "commandNote",
-      "shortcut": "ctrl shift 1",
+      "shortcut": "ctrl shift 5",
       "handler" : "commandNote",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Overlay",
-      "identifier": "commandOverlay",
-      "shortcut": "ctrl shift 2",
-      "handler" : "commandOverlay",
+      "identifier": "commandOverlays",
+      "shortcut": "ctrl shift 1",
+      "handler" : "commandOverlays",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Property",
-      "identifier": "commandProperty",
-      "shortcut": "ctrl shift 3",
-      "handler" : "commandProperty",
+      "identifier": "commandProperties",
+      "shortcut": "ctrl shift 4",
+      "handler" : "commandProperties",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Size",
-      "identifier": "commandSize",
-      "shortcut": "ctrl shift 4",
-      "handler" : "commandSize",
+      "identifier": "commandSizes",
+      "shortcut": "ctrl shift 2",
+      "handler" : "commandSizes",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Spacing",
-      "identifier": "commandSpacing",
-      "shortcut": "ctrl shift 5",
-      "handler" : "commandSpacing",
+      "identifier": "commandSpacings",
+      "shortcut": "ctrl shift 3",
+      "handler" : "commandSpacings",
       "script": "mark.sketchscript"
     },
     {
@@ -52,9 +59,9 @@
     },
     {
       "name": "Settings",
-      "identifier": "commandSetting",
+      "identifier": "commandSettings",
       "shortcut": "",
-      "handler": "commandSetting",
+      "handler": "commandSettings",
       "script": "mark.sketchscript"
     },
     {
@@ -98,15 +105,17 @@
     "isRoot" : false,
     "shortcut" : "",
     "items" : [
+      "commandToolBar",
+      "-",
       "commandExportable",
       "commandExport",
       "commandColor",
       "-",
       "commandNote",
-      "commandOverlay",
-      "commandProperty",
-      "commandSize",
-      "commandSpacing",
+      "commandOverlays",
+      "commandProperties",
+      "commandSizes",
+      "commandSpacings",
       "commandClear",
       "-",
       "commandVisit",
@@ -115,7 +124,7 @@
       "commandLogout"
     ]
   },
-  "identifier": "com.sketch.draftappio",
+  "identifier": "com.draft.draftappio",
   "version": "1.0.0",
   "description" : "The easiest collaporative tool for designers and developers",
   "authorEmail" : "support@draftapp.io",

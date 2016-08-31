@@ -13,8 +13,6 @@
     <script type="text/javascript" src="assets/js/jquery.validate.min.js"></script>
     <script type="text/javascript" src="assets/js/common.js"></script>
     <script type="text/javascript">
-      var token;
-
       $.fn.serializeObject = function()
       {
         var o = {};
@@ -64,8 +62,7 @@
             var signinForm = JSON.stringify($('#signin-form').serializeObject());
 
             $.ajax({
-              // url: "http://api.draftapp.io/login",
-              url: "https://draftappapi.herokuapp.com/auth/sign_in",
+              url: "http://api.draftapp.io/auth/sign_in",
               type: 'POST',
               data: signinForm,
               mimeType: "multipart/form-data",
@@ -80,10 +77,8 @@
                 $("#signin-btn").html('Done!');
 
                 // Read and save the access token
-                token = request.getResponseHeader("access-token");
-
                 var options = {};
-                options.accessToken = token;
+                options.accessToken = request.getResponseHeader("access-token");
 
                 SMAction(options);
               },
@@ -97,7 +92,7 @@
 
                 var error = ""
                 if (httpObj.responseText) {
-                  error = JSON.parse(httpObj.responseText)['errors'].join(', ')
+                  error = JSON.parse(httpObj.responseText)['errors'].join(', ');
                 }
                 else {
                   error = httpObj.statusText;

@@ -45,6 +45,10 @@ function commandLogout(context) {
   SM.init(context, "logout");
 }
 
+function commandToolBar(context) {
+    SM.init(context, "toolbar");
+}
+
 function commandVisit(context) {
   NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("https://draftapp.io"));
 }
