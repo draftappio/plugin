@@ -2,63 +2,71 @@
 @import "library/MochaJSDelegate.js"
 
 function commandOverlays(context) {
-    SM.init(context, "mark-overlays");
+  DraftApp.init(context, "mark-overlays");
 }
 
 function commandSizes(context) {
-    if(NSEvent.modifierFlags() == 917504){
-        SM.init(context, "mark-sizes");
-    }
-    else{
-        SM.init(context, "lite-sizes");
-    }
+  if(NSEvent.modifierFlags() == 917504){
+    DraftApp.init(context, "mark-sizes");
+  }
+  else{
+    DraftApp.init(context, "lite-sizes");
+  }
 }
 
 function commandSpacings(context) {
-    if(NSEvent.modifierFlags() == 917504){
-        SM.init(context, "mark-spacings");
-    }
-    else{
-        SM.init(context, "lite-spacings");
-    }
+  if(NSEvent.modifierFlags() == 917504){
+    DraftApp.init(context, "mark-spacings");
+  }
+  else{
+    DraftApp.init(context, "lite-spacings");
+  }
 }
 
 function commandProperties(context) {
-    
-    if(NSEvent.modifierFlags() == 917504){
-        SM.init(context, "mark-properties");
-    }
-    else{
-        SM.init(context, "lite-properties");
-    }
+
+  if(NSEvent.modifierFlags() == 917504){
+    DraftApp.init(context, "mark-properties");
+  }
+  else{
+    DraftApp.init(context, "lite-properties");
+  }
 }
 
 function commandNote(context) {
-    SM.init(context, "mark-note");
+  DraftApp.init(context, "mark-note");
 }
 
 function commandClear(context) {
-    SM.init(context, "clear");
+  DraftApp.init(context, "clear");
 }
 
 function commandColor(context) {
-    SM.init(context, "color");
+  DraftApp.init(context, "color");
 }
 
 function commandExportable(context) {
-    SM.init(context, "exportable");
+  DraftApp.init(context, "exportable");
 }
 
 function commandSettings(context) {
-    SM.init(context, "settings");
+  DraftApp.init(context, "settings");
 }
 
 function commandExport(context) {
-    SM.init(context, "export");
+  DraftApp.init(context, "export");
 }
 
 function commandToolBar(context) {
-    SM.init(context, "toolbar");
+  DraftApp.init(context, "toolbar");
+}
+
+function commandLogin(context) {
+  DraftApp.init(context, "login");
+}
+
+function commandLogout(context) {
+  DraftApp.init(context, "logout");
 }
 
 function commandVisit(context) {

@@ -1,3 +1,18 @@
+var DraftApp = {
+  extend: function( options, target ){
+    var target = target || this;
+
+    for ( var key in options ){
+      target[key] = options[key];
+    }
+    return target;
+  }
+};
+
+@import "library/utilities/logger.js";
+@import "library/helpers/api.js";
+@import "library/helpers/config.js";
+
 var I18N = {},
     webI18N = {
       "zh-Hans": "zh-cn",
@@ -15,7 +30,7 @@ function _(str, data){
   });
 }
 
-var SM = {
+DraftApp.extend({
   init: function(context, command){
     coscript.setShouldKeepAround(true);
     this.context = context;
@@ -32,6 +47,8 @@ var SM = {
       .stringByDeletingLastPathComponent()
       .stringByDeletingLastPathComponent();
     this.pluginSketch = this.pluginRoot + "/Contents/Sketch/library";
+    // this.apiURL = "http://api.draftapp.io"
+    this.apiURL = "http://localhost:3000"
 
     if(command == "toolbar"){
       this.ToolBar();
@@ -120,25 +137,17 @@ var SM = {
         this.export();
         break;
     }
-
-  },
-  extend: function( options, target ){
-    var target = target || this;
-
-    for ( var key in options ){
-      target[key] = options[key];
-    }
-    return target;
   }
-},
-  BorderPositions = ["center", "inside", "outside"],
+});
+
+var BorderPositions = ["center", "inside", "outside"],
   FillTypes = ["color", "gradient"],
   GradientTypes = ["linear", "radial", "angular"],
   ShadowTypes = ["outer", "inner"],
   TextAligns = ["left", "right", "center", "justify", "left"],
   ResizingType = ["stretch", "corner", "resize", "float"];
 
-SM.extend({
+DraftApp.extend({
   prefix: "SMConfigs2",
   regexNames: /OVERLAY\#|WIDTH\#|HEIGHT\#|TOP\#|RIGHT\#|BOTTOM\#|LEFT\#|VERTICAL\#|HORIZONTAL\#|NOTE\#|PROPERTY\#|LITE\#/,
   colors: {
@@ -171,7 +180,7 @@ SM.extend({
 });
 
 // api.js
-SM.extend({
+DraftApp.extend({
   is: function(layer, theClass){
     if(!layer) return false;
     var klass = layer.class();
@@ -421,7 +430,7 @@ SM.extend({
 });
 
 // help.js
-SM.extend({
+DraftApp.extend({
   mathHalf: function(number){
     return Math.round( number / 2 );
   },
@@ -539,52 +548,8 @@ SM.extend({
   },
 });
 
-// configs.js
-SM.extend({
-  getConfigs: function(container){
-    var container = container || this.symbolsPage,
-    command = this.command,
-    prefix = this.prefix,
-    configsData = command.valueForKey_onLayer(prefix, container);
-    return JSON.parse(configsData);
-  },
-  setConfigs: function(newConfigs, container){
-    var container = container || this.symbolsPage,
-    command = this.command,
-    prefix = this.prefix,
-    configs = this.extend(newConfigs, this.getConfigs(container) || {});
-
-    configs.timestamp = new Date().getTime();
-    var configsData = JSON.stringify(configs);
-    command.setValue_forKey_onLayer(configsData, prefix, container);
-    return configs;
-  },
-  removeConfigs: function(container){
-    var container = container || this.symbolsPage,
-    command = this.command,
-    prefix = this.prefix;
-    command.setValue_forKey_onLayer(null, prefix, container)
-  },
-  saveAccessToken: function (accessToken) {
-    log('saveAccessToken()');
-    [[NSUserDefaults standardUserDefaults] setObject:accessToken forKey:"token"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-  },
-  readAccessToken: function () {
-    log("readAccessToken()");
-    var accessToken = [[NSUserDefaults standardUserDefaults] objectForKey:"token"];
-    return accessToken;
-  },
-  resetAccessToken: function () {
-    log("resetAccessToken()");
-    var accessToken = nil;
-    [[NSUserDefaults standardUserDefaults] setObject:accessToken forKey:"token"];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-  }
-});
-
 //shared.js
-SM.extend({
+DraftApp.extend({
   sharedLayerStyle: function(name, color, borderColor) {
     var sharedStyles = this.documentData.layerStyles(),
     style = this.find({key: "(name != NULL) && (name == %@)", match: name}, sharedStyles);
@@ -640,7 +605,7 @@ SM.extend({
 });
 
 // ruler.js
-SM.extend({
+DraftApp.extend({
   setRuler: function( options ){
     var options = this.extend(options, {
       container: this.current,
@@ -752,7 +717,7 @@ SM.extend({
 });
 
 // label.js
-SM.extend({
+DraftApp.extend({
   setLabel: function( options ){
     var options = this.extend(options, {
       text: "Label",
@@ -867,7 +832,7 @@ SM.extend({
 });
 // ToolBar.js
 
-SM.extend({
+DraftApp.extend({
   ToolBar: function(){
     var self = this,
     identifier = "com.utom.measure",
@@ -1024,7 +989,7 @@ SM.extend({
 })
 
 // Panel.js
-SM.extend({
+DraftApp.extend({
   SMPanel: function(options){
     var self = this,
     options = this.extend(options, {
@@ -1043,7 +1008,7 @@ SM.extend({
     options.url = encodeURI("file://" + options.url);
 
     var frame = NSMakeRect(0, 0, options.width, (options.height + 32)),
-    titleBgColor = NSColor.colorWithRed_green_blue_alpha(.9, .9, .9, 1),
+    titleBgColor = NSColor.colorWithRed_green_blue_alpha(1, 1, 1, 1),
     contentBgColor = NSColor.colorWithRed_green_blue_alpha(1, 1, 1, 1);
 
     var Panel = NSPanel.alloc().init();
@@ -1161,17 +1126,19 @@ SM.extend({
     var self = this,
     data = {};
 
-    if(this.configs){
+    if(this.configs) {
+      data.projectName = this.configs.projectName;
       data.scale = this.configs.scale;
       data.unit = this.configs.unit;
       data.colorFormat = this.configs.colorFormat;
     }
 
     return this.SMPanel({
-      width: 440,
-      height: 380,
+      width: 340,
+      height: 430,
       data: data,
       callback: function( data ){
+        logger.debug("Settings set:" + JSON.stringify(data));
         self.configs = self.setConfigs(data);
       }
     });
@@ -1225,8 +1192,8 @@ SM.extend({
       height: 500,
       data: data,
       callback: function( data ){
-        log("loginPanel()");
-        log(data.accessToken);
+        logger.info("loginPanel()");
+        logger.info("Token: " + data.accessToken);
         self.saveAccessToken(data.accessToken);
       }
     });
@@ -1274,7 +1241,7 @@ SM.extend({
 });
 
 // mark-base.js
-SM.extend({
+DraftApp.extend({
   sizes: function( options ){
     var options = this.extend(options, {}),
     name = options.name,
@@ -1448,7 +1415,7 @@ SM.extend({
 });
 
 
-SM.extend({
+DraftApp.extend({
   overlay: function(target){
     var targetRect = this.getRect(target),
     name = "OVERLAY#" + target.objectID(),
@@ -1477,7 +1444,7 @@ SM.extend({
 });
 
 // properties.js
-SM.extend({
+DraftApp.extend({
   fillTypeContent: function( fillJSON ){
     var self = this,
     fillJSON = fillJSON;
@@ -1621,7 +1588,7 @@ SM.extend({
 });
 
 // marks.js
-SM.extend({
+DraftApp.extend({
   markOverlays: function(){
     var self = this,
     selection = this.selection;
@@ -1916,7 +1883,7 @@ SM.extend({
 });
 
 // resize.js
-SM.extend({
+DraftApp.extend({
   resizeProperties: function(container){
     var configs = this.getConfigs(container),
     placement = configs.placement,
@@ -2017,7 +1984,7 @@ SM.extend({
 });
 
 // colors.js
-SM.extend({
+DraftApp.extend({
   getSelectionColor: function(){
     var self = this,
     colors = [];
@@ -2143,7 +2110,7 @@ SM.extend({
 })
 
 // exportable.js
-SM.extend({
+DraftApp.extend({
   makeExportable: function(){
     if( this.selection.count() <= 0 ){
       this.message(_("Select a layer to add exportable!"));
@@ -2192,7 +2159,7 @@ SM.extend({
 });
 
 // export.js
-SM.extend({
+DraftApp.extend({
   slices: [],
   sliceCache: {},
   maskCache: [],
@@ -2575,6 +2542,7 @@ SM.extend({
         layerIndex = 0,
         exporting = false,
         data = {
+          projectName: "",
           scale: self.configs.scale,
           unit: self.configs.unit,
           colorFormat: self.configs.colorFormat,
@@ -2709,6 +2677,14 @@ SM.extend({
               }
               NSWorkspace.sharedWorkspace().activateFileViewerSelectingURLs(NSArray.arrayWithObjects(NSURL.fileURLWithPath(selectingPath)));
 
+              var stringifiedData = JSON.stringify(data);
+              logger.debug("stringified: " + stringifiedData);
+              var parsedData = JSON.parse(stringifiedData);
+              logger.debug(parsedData);
+
+              self.postToApi({projectData: parsedData});
+
+              logger.info("Export complete!");
               self.message(_("Export complete!"));
               self.wantsStop = true;
             }
@@ -2723,6 +2699,13 @@ SM.extend({
         });
       }
     }
+  },
+  postToApi: function(data) {
+    logger.info("DraftApp.postToApi()");
+
+    res = api.post("/projects", data);
+
+    logger.debug(res);
   },
   writeFile: function(options) {
     var options = this.extend(options, {
