@@ -65,17 +65,10 @@
       "script": "mark.sketchscript"
     },
     {
-      "name": "Login to Draft",
-      "identifier": "commandLogin",
+      "name": "Login/Logout of Draft",
+      "identifier": "commandLoginLogout",
       "shortcut": "ctrl shift l",
-      "handler": "commandLogin",
-      "script": "mark.sketchscript"
-    },
-    {
-      "name": "Logout from Draft",
-      "identifier": "commandLogout",
-      "shortcut": "",
-      "handler": "commandLogout",
+      "handler": "commandLoginLogout",
       "script": "mark.sketchscript"
     },
     {
@@ -120,8 +113,7 @@
       "-",
       "commandVisit",
       "commandSetting",
-      "commandLogin",
-      "commandLogout"
+      "commandLoginLogout"
     ]
   },
   "identifier": "com.draft.draftappio",

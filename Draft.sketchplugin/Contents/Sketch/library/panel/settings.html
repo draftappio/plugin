@@ -68,14 +68,23 @@
           $('#submit').prop('disabled', true);
           $('#projectName').click();
 
-          $.get( "http://localhost:3000/projects/project_names", function( data ) {
-            projectNames = data;
-            if (projectNames.length > 0) {
-              $(".projectName ul").html('');
+          $.ajax({
+            url: "http://localhost:3000/projects/project_names",
+            type: "GET",
+            beforeSend: function (xhr) {
+              xhr.setRequestHeader('Authorization', 'Token token="' + data.accessToken);
+            },
+            data: data,
+            contentType: "application/json",
+            success: function(data){
+              projectNames = data;
+              if (projectNames.length > 0) {
+                $(".projectName ul").html('');
 
-              for (i = 0; i < projectNames.length; i++) {
-                var project = projectNames[i];
-                $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
+                for (i = 0; i < projectNames.length; i++) {
+                  var project = projectNames[i];
+                  $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
+                }
               }
             }
           }).done(function() {
@@ -113,7 +122,7 @@
                                 '<h3>' + _('Project name') + '</h3>',
                                 '<p></p>',
                                 '<ul>',
-                                '<li><label id="projectName"><input type="radio" name="projectName" value="nil"><span>Fetching projects...</span></label></li>',
+                                  '<li><label id="projectName"><input type="radio" name="projectName" value="nil"><span>Fetching projects...</span></label></li>',
                                 '</ul>',
                             '</div>',
                         '</div>',

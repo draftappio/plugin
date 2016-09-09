@@ -1,34 +1,8 @@
-var DraftApp = {
-  extend: function( options, target ){
-    var target = target || this;
-
-    for ( var key in options ){
-      target[key] = options[key];
-    }
-    return target;
-  }
-};
-
+@import "library/main_app.js";
 @import "library/utilities/logger.js";
 @import "library/helpers/api.js";
 @import "library/helpers/config.js";
-
-var I18N = {},
-    webI18N = {
-      "zh-Hans": "zh-cn",
-      "zh-Hant": "zh-tw"
-    },
-    lang = NSUserDefaults.standardUserDefaults().objectForKey("AppleLanguages").objectAtIndex(0),
-    language = "";
-
-function _(str, data){
-  var str = (I18N[lang] && I18N[lang][str])? I18N[lang][str]: str,
-  idx = -1;
-  return str.replace(/\%\@/gi, function(){
-    idx++;
-    return data[idx];
-  });
-}
+@import "library/helpers/localization.js";
 
 DraftApp.extend({
   init: function(context, command){
@@ -70,14 +44,15 @@ DraftApp.extend({
       this.document.setCurrentPage(this.page);
     }
 
-
     this.configs = this.getConfigs();
+
+    if(!this.readAccessToken() && command != "login-logout") {
+      if(!this.loginPanel()) return false;
+    }
 
     if(!this.configs && command != "settings"){
       if(!this.settingsPanel()) return false;
     }
-
-    if(!this.readAccessToken() && command != "login") this.loginPanel();
 
     switch (command) {
       case "mark-overlays":
@@ -122,16 +97,13 @@ DraftApp.extend({
       case "settings":
         this.settingsPanel();
         break;
-      case "login":
-        if(!this.readAccessToken()) {
-          this.loginPanel();
+      case "login-logout":
+        if(this.readAccessToken()) {
+          this.resetAccessToken();
+          this.loggedoutPanel();
         } else {
-          this.alreadyLoggedPanel();
+          this.loginPanel();
         }
-        break;
-      case "logout":
-        this.resetAccessToken();
-        this.loggedoutPanel();
         break;
       case "export":
         this.export();
@@ -1126,12 +1098,11 @@ DraftApp.extend({
     var self = this,
     data = {};
 
-    if(this.configs) {
-      data.projectName = this.configs.projectName;
-      data.scale = this.configs.scale;
-      data.unit = this.configs.unit;
-      data.colorFormat = this.configs.colorFormat;
-    }
+    data.projectName = this.configs.projectName;
+    data.scale = this.configs.scale;
+    data.unit = this.configs.unit;
+    data.colorFormat = this.configs.colorFormat;
+    data.accessToken = this.readAccessToken();
 
     return this.SMPanel({
       width: 340,
@@ -2542,11 +2513,11 @@ DraftApp.extend({
         layerIndex = 0,
         exporting = false,
         data = {
-          projectName: "",
+          slug: self.configs.projectName,
           scale: self.configs.scale,
           unit: self.configs.unit,
           colorFormat: self.configs.colorFormat,
-          artboards: [],
+          artboards_attributes: [],
           slices: [],
           colors: []
         };
@@ -2559,8 +2530,8 @@ DraftApp.extend({
           processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
           idx++;
 
-          if(!data.artboards[artboardIndex]){
-            data.artboards.push({layers: [], notes: []});
+          if(!data.artboards_attributes[artboardIndex]){
+            data.artboards_attributes.push({layers: [], notes_attributes: []});
             self.maskCache = [];
             self.maskObjectID = undefined;
             self.maskRect = undefined;
@@ -2576,7 +2547,7 @@ DraftApp.extend({
             self.getLayer(
                 artboard, // Sketch artboard element
                 layer, // Sketch layer element
-                data.artboards[artboardIndex] // Save to data
+                data.artboards_attributes[artboardIndex] // Save to data
                 );
 
 
@@ -2590,13 +2561,13 @@ DraftApp.extend({
                 // name = self.toSlug(self.toHTMLEncode(page.name()) + ' ' + self.toHTMLEncode(artboard.name()));
                 slug = self.toSlug(page.name() + ' ' + artboard.name());
 
-              data.artboards[artboardIndex].pageName = self.toHTMLEncode(page.name());
-              data.artboards[artboardIndex].pageObjectID = self.toJSString(page.objectID());
-              data.artboards[artboardIndex].name = self.toHTMLEncode(artboard.name());
-              data.artboards[artboardIndex].slug = slug;
-              data.artboards[artboardIndex].objectID = self.toJSString(artboard.objectID());
-              data.artboards[artboardIndex].width = artboardRect.width;
-              data.artboards[artboardIndex].height = artboardRect.height;
+              data.artboards_attributes[artboardIndex].pageName = self.toHTMLEncode(page.name());
+              data.artboards_attributes[artboardIndex].pageObjectID = self.toJSString(page.objectID());
+              data.artboards_attributes[artboardIndex].name = self.toHTMLEncode(artboard.name());
+              data.artboards_attributes[artboardIndex].slug = slug;
+              data.artboards_attributes[artboardIndex].objectID = self.toJSString(artboard.objectID());
+              data.artboards_attributes[artboardIndex].width = artboardRect.width;
+              data.artboards_attributes[artboardIndex].height = artboardRect.height;
 
 
               if(!self.configs.exportOption){
@@ -2607,9 +2578,9 @@ DraftApp.extend({
                 })),
                   imageData = NSData.dataWithContentsOfURL(imageURL),
                   imageBase64 = imageData.base64EncodedStringWithOptions(0);
-                data.artboards[artboardIndex].imageBase64 = 'data:image/png;base64,' + imageBase64;
+                data.artboards_attributes[artboardIndex].imageBase64 = 'data:image/png;base64,' + imageBase64;
                 var newData =  JSON.parse(JSON.stringify(data));
-                newData.artboards = [data.artboards[artboardIndex]];
+                newData.artboards_attributes = [data.artboards_attributes[artboardIndex]];
                 self.writeFile({
                   content: self.template(template, {lang: language, data: JSON.stringify(newData).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
                   path: self.toJSString(savePath),
@@ -2617,8 +2588,8 @@ DraftApp.extend({
                 });
               }
               else{
-                // data.artboards[artboardIndex].imagePath = "preview/" + objectID + ".png";
-                data.artboards[artboardIndex].imagePath = "preview/" + encodeURI(slug) + ".png";
+                // data.artboards_attributes[artboardIndex].imagePath = "preview/" + objectID + ".png";
+                data.artboards_attributes[artboardIndex].imagePath = "preview/" + encodeURI(slug) + ".png";
 
                 self.exportImage({
                   layer: artboard,
@@ -2656,7 +2627,7 @@ DraftApp.extend({
 
               var selectingPath = savePath;
               if(self.configs.exportOption){
-                data.artboards.sort(function(a, b) {
+                data.artboards_attributes.sort(function(a, b) {
                   var slugA = a.slug.toUpperCase(),
                   slugB = b.slug.toUpperCase();
                   if (slugA < slugB) {
@@ -2682,7 +2653,7 @@ DraftApp.extend({
               var parsedData = JSON.parse(stringifiedData);
               logger.debug(parsedData);
 
-              self.postToApi({projectData: parsedData});
+              self.postToApi({project: parsedData});
 
               logger.info("Export complete!");
               self.message(_("Export complete!"));
@@ -2767,7 +2738,7 @@ DraftApp.extend({
     if(layer && this.is(layer, MSLayerGroup) && /NOTE\#/.exec(layer.name())){
       var textLayer = layer.children()[2];
 
-      data.notes.push({
+      data.notes_attributes.push({
         rect: this.rectToJSON(textLayer.absoluteRect(), artboardRect),
         note: this.toHTMLEncode(textLayer.stringValue()).replace(/\n/g, "<br>")
       });

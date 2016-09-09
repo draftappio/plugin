@@ -61,12 +61,8 @@ function commandToolBar(context) {
   DraftApp.init(context, "toolbar");
 }
 
-function commandLogin(context) {
-  DraftApp.init(context, "login");
-}
-
-function commandLogout(context) {
-  DraftApp.init(context, "logout");
+function commandLoginLogout(context) {
+  DraftApp.init(context, "login-logout");
 }
 
 function commandVisit(context) {

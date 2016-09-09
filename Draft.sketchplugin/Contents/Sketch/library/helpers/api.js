@@ -2,6 +2,8 @@ var api = new Api();
 
 function Api () {}
 
+// TODO: Implement OAuth 2.0 token auth
+
 // ---------------------------------------- //
 //                  Core API                //
 // ---------------------------------------- //
@@ -42,7 +44,11 @@ Api.prototype.request = function(method, path, params) {
   var token = DraftApp.readAccessToken();
   if (token) {
     logger.debug("Token found");
-    [req setValue:token forHTTPHeaderField:"Authorization"];
+    [req setValue:"0fngwoKbczb_dg_C6sGkqQ" forHTTPHeaderField:"access-token"];
+    [req setValue:"Bearer" forHTTPHeaderField:"token-type"];
+    [req setValue:"-Sz_6RfEKyUxchjp97qBMQ" forHTTPHeaderField:"client"];
+    [req setValue:"1474263658" forHTTPHeaderField:"expiry"];
+    [req setValue:"wazery@ubuntu.com" forHTTPHeaderField:"uid"];
   }
 
   if (params) {
