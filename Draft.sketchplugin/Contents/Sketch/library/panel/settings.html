@@ -11,7 +11,7 @@
     <script type="text/javascript" src="assets/js/jquery-2.2.4.min.js"></script>
     <script type="text/javascript" src="assets/js/common.js"></script>
     <script type="text/javascript">
-    <!--
+    var authData = {};
     var bindSelectBoxClicks = function(){
       $('.selectbox').each(function(index){
         var $this = $(this);
@@ -71,12 +71,15 @@
           $.ajax({
             url: "http://localhost:3000/projects/project_names",
             type: "GET",
-            beforeSend: function (xhr) {
-              xhr.setRequestHeader('Authorization', 'Token token="' + data.accessToken);
+            beforeSend: function (request) {
+              request.setRequestHeader('access-token', data.authHeaders.accessToken);
+              request.setRequestHeader('client', data.authHeaders.client);
+              request.setRequestHeader('expiry', data.authHeaders.expiry);
+              request.setRequestHeader('uid', data.authHeaders.uid);
             },
             data: data,
             contentType: "application/json",
-            success: function(data){
+            success: function (data, textStatus, request) {
               projectNames = data;
               if (projectNames.length > 0) {
                 $(".projectName ul").html('');
@@ -86,6 +89,11 @@
                   $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
                 }
               }
+              // Read the auth headers, to be saved later
+              authData.accessToken = request.getResponseHeader("access-token");
+              authData.client = request.getResponseHeader("client");
+              authData.expiry = request.getResponseHeader("expiry");
+              authData.uid = request.getResponseHeader("uid");
             }
           }).done(function() {
             $('.projects-title').html("Project name");
@@ -108,9 +116,10 @@
               projectName: $('input[name=projectName]:checked').val(),
               scale: $('input[name=scale]').val(),
               unit: $('input[name=unit]').val(),
-              colorFormat: $('input[name=format]:checked').val()
+              colorFormat: $('input[name=format]:checked').val(),
+              authData: authData
             });
-            console.log(window.location.hash)
+            // console.log(window.location.hash)
         },
         init = function(data){
             $('body').html([
@@ -180,13 +189,15 @@
                     '</div>',
                 '</div>'
                 ].join(''));
+
             var data = $.extend({
-              projectName: "projectName",
+              projectName: "Project name",
               scale: 1,
               unit: 'px',
               colorFormat: 'color-hex'
-            }, data),
-            id = getDesignResolutionID(data.scale, data.unit);
+            }, data);
+
+            var id = getDesignResolutionID(data.scale, data.unit);
 
             getProjectNames(data);
 
@@ -204,66 +215,78 @@
             $('#' + data.colorFormat).click();
 
             if(id == 'custom'){
-                $('input[name=scale]').val(data.scale);
-                $('input[name=unit]').val(data.unit);
+              $('input[name=scale]').val(data.scale);
+              $('input[name=unit]').val(data.unit);
             }
 
             bindSelectBoxClicks();
 
             $('input[name=scale]').keypress(function(event){
-                var eventObj = event || e,
-                    keyCode = eventObj.keyCode || eventObj.which;
+              var eventObj = event || e,
+              keyCode = eventObj.keyCode || eventObj.which;
 
-                if ((keyCode >= 48 && keyCode <= 57) || keyCode == 46)
-                    return true;
-                else
-                    return false;
+              if ((keyCode >= 48 && keyCode <= 57) || keyCode == 46)
+                return true;
+              else
+                return false;
+            });
+
+            $('input[name=projectName]').keypress(function(event){
+              var eventObj = event || e,
+              keyCode = eventObj.keyCode || eventObj.which;
+
+              if ((keyCode >= 48 && keyCode <= 57) || keyCode == 46)
+                return true;
+              else
+                return false;
             });
 
             $('input[name=unit]').keypress(function(event){
-                var eventObj = event || e,
-                    keyCode = eventObj.keyCode || eventObj.which;
+              var eventObj = event || e,
+              keyCode = eventObj.keyCode || eventObj.which;
 
-                if ((keyCode >= 65 && keyCode <= 90) || (keyCode >= 97 && keyCode <= 122) || keyCode == 47)
-                    return true;
-                else
-                    return false;
+              if ((keyCode >= 65 && keyCode <= 90) || (keyCode >= 97 && keyCode <= 122) || keyCode == 47)
+                return true;
+              else
+                return false;
             });
 
             $('input[type=text]').keyup(function(){
-                var scale = $('input[name=scale]').val(),
-                    unit = $('input[name=unit]').val();
+              var scale = $('input[name=scale]').val(),
+              unit = $('input[name=unit]').val();
 
-                if(scale && unit){
-                    checkResolution(getDesignResolutionID(scale, unit));
-                    $('.resolution ul').scrollTop(0);
-                    var scrollTop = $('.resolution input:checked').parent().parent().position().top;
-                    $('.resolution ul').scrollTop(scrollTop);
-                }
+              if(scale && unit){
+                checkResolution(getDesignResolutionID(scale, unit));
+                $('.resolution ul').scrollTop(0);
+                var scrollTop = $('.resolution input:checked').parent().parent().position().top;
+                $('.resolution ul').scrollTop(scrollTop);
+              }
             })
             .focus(function () {
-                this.style.imeMode = 'disabled';
+              this.style.imeMode = 'disabled';
             })
             .blur(function(){
-                var scale = $('input[name=scale]').val(),
-                    unit = $('input[name=unit]').val();
-                if(!scale){
-                    $('input[name=scale]').val(1);
-                }
+              var scale = $('input[name=scale]').val(),
+              unit = $('input[name=unit]').val(),
+              projectName = $('input[name=projectName]').val();
 
-                if(!unit){
-                    $('input[name=unit]').val('px');
-                }
+              if (!scale) {
+                $('input[name=scale]').val(1);
+              }
+
+              if (!unit) {
+                $('input[name=unit]').val('px');
+              }
+
+              if (!projectName) {
+                $('input[name=projectName]').val('Project name');
+              }
             });
 
             $("#submit").click(submit);
 
             $('.container').show();
         };
-        // $(function(){
-        //     init()
-        // });
-    -->
     </script>
   </head>
   <body></body>
