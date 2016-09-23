@@ -1,5 +1,6 @@
 @import "library/main_app.js";
 @import "library/utilities/logger.js";
+@import "library/utilities/toolbar.js";
 @import "library/helpers/api.js";
 @import "library/helpers/config.js";
 @import "library/helpers/localization.js";
@@ -21,8 +22,8 @@ DraftApp.extend({
       .stringByDeletingLastPathComponent()
       .stringByDeletingLastPathComponent();
     this.pluginSketch = this.pluginRoot + "/Contents/Sketch/library";
-    // this.apiURL = "http://api.draftapp.io"
-    this.apiURL = "http://localhost:3000"
+    // this.apiURL = "http://api.draftapp.io";
+    this.apiURL = "http://localhost:3000";
 
     if(command == "toolbar"){
       this.ToolBar();
@@ -46,11 +47,11 @@ DraftApp.extend({
 
     this.configs = this.getConfigs();
 
-    if(!this.readAccessToken() && command != "login-logout") {
+    if(!this.isAuthHeaderExist() && command != "login-logout") {
       if(!this.loginPanel()) return false;
     }
 
-    if(!this.configs && command != "settings"){
+    if(!this.configs && command != "settings") {
       if(!this.settingsPanel()) return false;
     }
 
@@ -85,9 +86,6 @@ DraftApp.extend({
       case "hidden":
         this.toggleHidden();
         break;
-      case "clear":
-        this.clearAllMarks();
-        break;
       case "color":
         this.manageColors();
         break;
@@ -98,7 +96,7 @@ DraftApp.extend({
         this.settingsPanel();
         break;
       case "login-logout":
-        if(this.readAccessToken()) {
+        if(this.isAuthHeaderExist()) {
           this.resetAccessToken();
           this.loggedoutPanel();
         } else {
@@ -106,7 +104,11 @@ DraftApp.extend({
         }
         break;
       case "export":
-        this.export();
+        if(!this.configs.projectName) {
+          this.settingsPanel();
+        } else {
+          this.export();
+        }
         break;
     }
   }
@@ -401,7 +403,7 @@ DraftApp.extend({
   }
 });
 
-// help.js
+// Help.js
 DraftApp.extend({
   mathHalf: function(number){
     return Math.round( number / 2 );
@@ -520,7 +522,7 @@ DraftApp.extend({
   },
 });
 
-//shared.js
+// Shared.js
 DraftApp.extend({
   sharedLayerStyle: function(name, color, borderColor) {
     var sharedStyles = this.documentData.layerStyles(),
@@ -576,7 +578,7 @@ DraftApp.extend({
   }
 });
 
-// ruler.js
+// Ruler.js
 DraftApp.extend({
   setRuler: function( options ){
     var options = this.extend(options, {
@@ -688,7 +690,7 @@ DraftApp.extend({
   }
 });
 
-// label.js
+// Label.js
 DraftApp.extend({
   setLabel: function( options ){
     var options = this.extend(options, {
@@ -720,8 +722,8 @@ DraftApp.extend({
     // set radius
     box.layers().firstObject().setCornerRadiusFromComponents("2")
 
-      // set name
-      arrow.setName("label-arrow");
+    // set name
+    arrow.setName("label-arrow");
     box.setName("label-box");
     text.setName("label-text");
 
@@ -802,163 +804,6 @@ DraftApp.extend({
     };
   }
 });
-// ToolBar.js
-
-DraftApp.extend({
-  ToolBar: function(){
-    var self = this,
-    identifier = "com.utom.measure",
-    threadDictionary = NSThread.mainThread().threadDictionary(),
-    ToolBar = threadDictionary[identifier];
-
-    if(!ToolBar){
-      ToolBar = NSPanel.alloc().init();
-      ToolBar.setStyleMask(NSTitledWindowMask + NSFullSizeContentViewWindowMask);
-      ToolBar.setBackgroundColor(NSColor.colorWithRed_green_blue_alpha(0.10, 0.10, 0.10, 1));
-      ToolBar.setTitleVisibility(NSWindowTitleHidden);
-      ToolBar.setTitlebarAppearsTransparent(true);
-
-      ToolBar.setFrame_display(NSMakeRect(0, 0, 584, 48), false);
-      ToolBar.setMovableByWindowBackground(true);
-      ToolBar.becomeKeyWindow();
-      ToolBar.setLevel(NSFloatingWindowLevel);
-
-      var contentView = ToolBar.contentView(),
-      getImage = function(size, name){
-        var isRetinaDisplay = (NSScreen.mainScreen().backingScaleFactor() > 1)? true: false;
-        suffix = (isRetinaDisplay)? "@2x": "",
-        imageURL = NSURL.fileURLWithPath(self.pluginSketch + "/toolbar/" + name + suffix + ".png"),
-        image = NSImage.alloc().initWithContentsOfURL(imageURL);
-
-        return image
-      },
-      addButton = function(rect, name, callAction){
-        var button = NSButton.alloc().initWithFrame(rect),
-        image = getImage(rect.size, name);
-
-        button.setImage(image);
-        button.setBordered(false);
-        button.sizeToFit();
-        button.setButtonType(NSMomentaryChangeButton)
-          button.setCOSJSTargetFunction(callAction);
-        button.setAction("callAction:");
-        return button;
-      },
-      addImage = function(rect, name){
-        var view = NSImageView.alloc().initWithFrame(rect),
-        image = getImage(rect.size, name);
-        view.setImage(image);
-        return view;
-      },
-      closeButton = addButton( NSMakeRect(14, 14, 20, 20), "icon-close",
-          function(sender){
-            coscript.setShouldKeepAround(false);
-            threadDictionary.removeObjectForKey(identifier);
-            ToolBar.close();
-          }),
-      overlayButton = addButton( NSMakeRect(64, 14, 20, 20), "icon-overlay",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "mark-overlays");
-          }),
-      sizesButton = addButton( NSMakeRect(112, 14, 20, 20), "icon-sizes",
-          function(sender){
-            self.updateContext();
-            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
-              self.init(self.context, "mark-sizes");
-            }
-            else{
-              self.init(self.context, "lite-sizes");
-            }
-          }),
-      spacingsButton = addButton( NSMakeRect(160, 14, 20, 20), "icon-spacings",
-          function(sender){
-            self.updateContext();
-            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
-              self.init(self.context, "mark-spacings");
-            }
-            else{
-              self.init(self.context, "lite-spacings");
-            }
-          }),
-      propertiesButton = addButton( NSMakeRect(208, 14, 20, 20), "icon-properties",
-          function(sender){
-            self.updateContext();
-            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
-              self.init(self.context, "mark-properties");
-            }
-            else{
-              self.init(self.context, "lite-properties");
-            }
-
-          }),
-      notesButton = addButton( NSMakeRect(258, 14, 20, 20), "icon-notes",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "mark-note");
-          }),
-      exportableButton = addButton( NSMakeRect(306, 14, 20, 20), "icon-slice",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "exportable");
-          }),
-      colorsButton = addButton( NSMakeRect(354, 14, 20, 20), "icon-colors",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "color");
-          }),
-      exportButton = addButton( NSMakeRect(402, 14, 20, 20), "icon-export",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "export");
-          }),
-      hiddenButton = addButton( NSMakeRect(452, 14, 20, 20), "icon-hidden",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "hidden");
-          }),
-      lockedButton = addButton( NSMakeRect(500, 14, 20, 20), "icon-locked",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "locked");
-          }),
-      settingsButton = addButton( NSMakeRect(548, 14, 20, 20), "icon-settings",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "settings");
-          }),
-      divider1 = addImage( NSMakeRect(48, 8, 2, 32), "divider"),
-      divider2 = addImage( NSMakeRect(242, 8, 2, 32), "divider"),
-      divider3 = addImage( NSMakeRect(436, 8, 2, 32), "divider");
-
-      contentView.addSubview(closeButton);
-      contentView.addSubview(overlayButton);
-      contentView.addSubview(sizesButton);
-      contentView.addSubview(spacingsButton);
-      contentView.addSubview(propertiesButton);
-
-      contentView.addSubview(notesButton);
-      contentView.addSubview(exportableButton);
-      contentView.addSubview(colorsButton);
-      contentView.addSubview(exportButton);
-
-      contentView.addSubview(hiddenButton);
-      contentView.addSubview(lockedButton);
-      contentView.addSubview(settingsButton);
-
-      contentView.addSubview(divider1);
-      contentView.addSubview(divider2);
-      contentView.addSubview(divider3);
-
-      threadDictionary[identifier] = ToolBar;
-
-      ToolBar.center();
-      ToolBar.makeKeyAndOrderFront(nil);
-    }
-
-
-  }
-})
 
 // Panel.js
 DraftApp.extend({
@@ -1098,19 +943,27 @@ DraftApp.extend({
     var self = this,
     data = {};
 
-    data.projectName = this.configs.projectName;
-    data.scale = this.configs.scale;
-    data.unit = this.configs.unit;
-    data.colorFormat = this.configs.colorFormat;
-    data.accessToken = this.readAccessToken();
+    if (this.configs) {
+      data.projectName = this.configs.projectName;
+      data.scale       = this.configs.scale;
+      data.unit        = this.configs.unit;
+      data.colorFormat = this.configs.colorFormat;
+    }
+
+    data.authHeaders             = this.readAuthHeaders();
+    data.authHeaders.accessToken = this.toJSString(data.authHeaders.accessToken);
+    data.authHeaders.client      = this.toJSString(data.authHeaders.client);
+    data.authHeaders.expiry      = this.toJSString(data.authHeaders.expiry);
+    data.authHeaders.uid         = this.toJSString(data.authHeaders.uid);
 
     return this.SMPanel({
       width: 340,
       height: 430,
       data: data,
       callback: function( data ){
-        logger.debug("Settings set:" + JSON.stringify(data));
+        logger.debug("Settings set: " + JSON.stringify(data));
         self.configs = self.setConfigs(data);
+        self.saveAuthHeaders(data.authData);
       }
     });
 
@@ -1165,7 +1018,8 @@ DraftApp.extend({
       callback: function( data ){
         logger.info("loginPanel()");
         logger.info("Token: " + data.accessToken);
-        self.saveAccessToken(data.accessToken);
+        logger.info("Expiry: " + data.expiry);
+        self.saveAuthHeaders(data);
       }
     });
   },
@@ -1414,7 +1268,7 @@ DraftApp.extend({
   }
 });
 
-// properties.js
+// Properties.js
 DraftApp.extend({
   fillTypeContent: function( fillJSON ){
     var self = this,
@@ -1823,7 +1677,7 @@ DraftApp.extend({
     note.setName("note-box");
     note.layers().firstObject().setCornerRadiusFromComponents("2")
 
-      text.setStringValue(target.storage().string());
+    text.setStringValue(target.storage().string());
     text.setTextBehaviour(1);
     text.setTextBehaviour(0);
     note.setStyle(noteStyle.layer);
@@ -2088,7 +1942,6 @@ DraftApp.extend({
       return false;
     }
 
-
     for (var i = 0; i < this.selection.count(); i++) {
       var layer = this.selection[i];
       layer.exportOptions().removeAllExportFormats();
@@ -2124,7 +1977,6 @@ DraftApp.extend({
       layer.setIsSelected(1);
 
     };
-
 
   }
 });
@@ -2329,6 +2181,7 @@ DraftApp.extend({
         layer.exportOptions().setLayerOptions(2);
       }
 
+      // TODO: Prepare base64 images to be posted with the /projects POST request
       this.assetsPath = this.savePath + "/assets";
       NSFileManager
         .defaultManager()
@@ -2493,190 +2346,146 @@ DraftApp.extend({
       if(this.selectionArtboards.length <= 0){
         return false;
       }
-      var self = this,
-      savePath = this.getSavePath();
+      var self = this;
 
-      if(savePath){
-        // self.message(_("Exporting..."));
-        var processingPanel = this.SMPanel({
-          url: this.pluginSketch + "/panel/processing.html",
-          width: 304,
-          height: 104,
-          floatWindow: true
-        }),
-        processing = processingPanel.windowScriptObject(),
-        template = NSString.stringWithContentsOfFile_encoding_error(this.pluginSketch + "/template.html", NSUTF8StringEncoding, nil);
+      // self.message(_("Exporting..."));
+      var processingPanel = this.SMPanel({
+        url: this.pluginSketch + "/panel/processing.html",
+        width: 304,
+        height: 104,
+        floatWindow: true
+      }),
+      processing = processingPanel.windowScriptObject();
 
-        this.savePath = savePath;
-        var idx = 1,
-        artboardIndex = 0,
-        layerIndex = 0,
-        exporting = false,
-        data = {
-          slug: self.configs.projectName,
-          scale: self.configs.scale,
-          unit: self.configs.unit,
-          colorFormat: self.configs.colorFormat,
-          artboards_attributes: [],
-          slices: [],
-          colors: []
-        };
+      var idx = 1,
+      artboardIndex = 0,
+      layerIndex = 0,
+      exporting = false,
+      data = {
+        slug: self.configs.projectName,
+        scale: self.configs.scale,
+        unit: self.configs.unit,
+        colorFormat: self.configs.colorFormat,
+        artboards_attributes: [],
+        slices: [],
+        colors: []
+      };
 
-        self.single = false;
-        self.wantsStop = false;
+      self.single = false;
+      self.wantsStop = false;
 
-        coscript.scheduleWithRepeatingInterval_jsFunction( 0, function( interval ){
-          // self.message('Processing layer ' + idx + ' of ' + self.allCount);
-          processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
-          idx++;
+      coscript.scheduleWithRepeatingInterval_jsFunction( 0, function( interval ){
+        // self.message('Processing layer ' + idx + ' of ' + self.allCount);
+        processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
+        idx++;
 
-          if(!data.artboards_attributes[artboardIndex]){
-            data.artboards_attributes.push({layers: [], notes_attributes: []});
-            self.maskCache = [];
-            self.maskObjectID = undefined;
-            self.maskRect = undefined;
+        if(!data.artboards_attributes[artboardIndex]){
+          data.artboards_attributes.push({layers: [], notes_attributes: []});
+          self.maskCache = [];
+          self.maskObjectID = undefined;
+          self.maskRect = undefined;
+        }
+
+        if(!exporting) {
+          exporting = true;
+          var artboard = self.selectionArtboards[artboardIndex],
+          page = artboard.parentGroup(),
+          layer = artboard.children()[layerIndex];
+
+          // log( page.name() + ' - ' + artboard.name() + ' - ' + layer.name());
+          self.getLayer(
+              artboard, // Sketch artboard element
+              layer, // Sketch layer element
+              data.artboards_attributes[artboardIndex] // Save to data
+              );
+
+
+          layerIndex++;
+          exporting = false;
+
+          if (self.is(layer, MSArtboardGroup)) {
+            var objectID = artboard.objectID(),
+              artboardRect = self.getRect(artboard),
+              page = artboard.parentGroup(),
+              // name = self.toSlug(self.toHTMLEncode(page.name()) + ' ' + self.toHTMLEncode(artboard.name()));
+              slug = self.toSlug(page.name() + ' ' + artboard.name());
+
+            data.artboards_attributes[artboardIndex].pageName = self.toHTMLEncode(page.name());
+            data.artboards_attributes[artboardIndex].pageObjectID = self.toJSString(page.objectID());
+            data.artboards_attributes[artboardIndex].name = self.toHTMLEncode(artboard.name());
+            data.artboards_attributes[artboardIndex].slug = slug;
+            data.artboards_attributes[artboardIndex].objectID = self.toJSString(artboard.objectID());
+            data.artboards_attributes[artboardIndex].width = artboardRect.width;
+            data.artboards_attributes[artboardIndex].height = artboardRect.height;
+
+            logger.debug("Encoding artboard image");
+            var imageURL = NSURL.fileURLWithPath(self.exportImage({ layer: artboard, scale: 2, name: objectID })),
+            imageData = NSData.dataWithContentsOfURL(imageURL),
+            artboard_image = imageData.base64EncodedStringWithOptions(0);
+
+            data.artboards_attributes[artboardIndex].artboard_image = 'data:image/png;base64,' + artboard_image;
+            var newData =  JSON.parse(JSON.stringify(data));
+            newData.artboards_attributes = [data.artboards_attributes[artboardIndex]];
+
+            layerIndex = 0;
+            artboardIndex++;
           }
 
-          if(!exporting) {
-            exporting = true;
-            var artboard = self.selectionArtboards[artboardIndex],
-            page = artboard.parentGroup(),
-            layer = artboard.children()[layerIndex];
-
-            // log( page.name() + ' - ' + artboard.name() + ' - ' + layer.name());
-            self.getLayer(
-                artboard, // Sketch artboard element
-                layer, // Sketch layer element
-                data.artboards_attributes[artboardIndex] // Save to data
-                );
-
-
-            layerIndex++;
-            exporting = false;
-
-            if( self.is(layer, MSArtboardGroup) ){
-              var objectID = artboard.objectID(),
-                artboardRect = self.getRect(artboard),
-                page = artboard.parentGroup(),
-                // name = self.toSlug(self.toHTMLEncode(page.name()) + ' ' + self.toHTMLEncode(artboard.name()));
-                slug = self.toSlug(page.name() + ' ' + artboard.name());
-
-              data.artboards_attributes[artboardIndex].pageName = self.toHTMLEncode(page.name());
-              data.artboards_attributes[artboardIndex].pageObjectID = self.toJSString(page.objectID());
-              data.artboards_attributes[artboardIndex].name = self.toHTMLEncode(artboard.name());
-              data.artboards_attributes[artboardIndex].slug = slug;
-              data.artboards_attributes[artboardIndex].objectID = self.toJSString(artboard.objectID());
-              data.artboards_attributes[artboardIndex].width = artboardRect.width;
-              data.artboards_attributes[artboardIndex].height = artboardRect.height;
-
-
-              if(!self.configs.exportOption){
-                var imageURL = NSURL.fileURLWithPath(self.exportImage({
-                  layer: artboard,
-                  scale: 2,
-                  name: objectID
-                })),
-                  imageData = NSData.dataWithContentsOfURL(imageURL),
-                  imageBase64 = imageData.base64EncodedStringWithOptions(0);
-                data.artboards_attributes[artboardIndex].imageBase64 = 'data:image/png;base64,' + imageBase64;
-                var newData =  JSON.parse(JSON.stringify(data));
-                newData.artboards_attributes = [data.artboards_attributes[artboardIndex]];
-                self.writeFile({
-                  content: self.template(template, {lang: language, data: JSON.stringify(newData).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
-                  path: self.toJSString(savePath),
-                  fileName: slug + ".html"
-                });
-              }
-              else{
-                // data.artboards_attributes[artboardIndex].imagePath = "preview/" + objectID + ".png";
-                data.artboards_attributes[artboardIndex].imagePath = "preview/" + encodeURI(slug) + ".png";
-
-                self.exportImage({
-                  layer: artboard,
-                  path: self.toJSString(savePath) + "/preview",
-                  scale: 2,
-                  // name: objectID,
-                  name: slug
-                });
-
-                self.writeFile({
-                  content: "<meta http-equiv=\"refresh\" content=\"0;url=../index.html#artboard" + artboardIndex + "\">",
-                  path: self.toJSString(savePath) + "/links",
-                  fileName: slug + ".html"
-                });
-              }
-
-
-              layerIndex = 0;
-              artboardIndex++;
+          if(artboardIndex >= self.selectionArtboards.length){
+            if(self.slices.length > 0){
+              data.slices = self.slices;
             }
 
-            if(artboardIndex >= self.selectionArtboards.length){
-              if(self.slices.length > 0){
-                data.slices = self.slices;
-              }
-
-              if(self.configs.colors && self.configs.colors.length > 0){
-                data.colors = self.configs.colors;
-                self.writeFile({
-                  content: JSON.stringify(self.configs.colors),
-                  path: self.toJSString(savePath),
-                  fileName: "colors.json"
-                });
-              }
-
-              var selectingPath = savePath;
-              if(self.configs.exportOption){
-                data.artboards_attributes.sort(function(a, b) {
-                  var slugA = a.slug.toUpperCase(),
-                  slugB = b.slug.toUpperCase();
-                  if (slugA < slugB) {
-                    return -1;
-                  }
-                  if (slugA > slugB) {
-                    return 1;
-                  }
-                  return 0;
-                });
-
-                self.writeFile({
-                  content: self.template(template, {lang: language, data: JSON.stringify(data).replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')}),
-                  path: self.toJSString(savePath),
-                  fileName: "index.html"
-                });
-                selectingPath = savePath + "/index.html";
-              }
-              NSWorkspace.sharedWorkspace().activateFileViewerSelectingURLs(NSArray.arrayWithObjects(NSURL.fileURLWithPath(selectingPath)));
-
-              var stringifiedData = JSON.stringify(data);
-              logger.debug("stringified: " + stringifiedData);
-              var parsedData = JSON.parse(stringifiedData);
-              logger.debug(parsedData);
-
-              self.postToApi({project: parsedData});
-
-              logger.info("Export complete!");
-              self.message(_("Export complete!"));
-              self.wantsStop = true;
+            if(self.configs.colors && self.configs.colors.length > 0){
+              data.colors = self.configs.colors;
             }
+
+            if(self.configs.exportOption){
+              data.artboards_attributes.sort(function(a, b) {
+                var slugA = a.slug.toUpperCase(),
+                slugB = b.slug.toUpperCase();
+                if (slugA < slugB) {
+                  return -1;
+                }
+                if (slugA > slugB) {
+                  return 1;
+                }
+                return 0;
+              });
+
+            }
+
+            var stringifiedData = JSON.stringify(data);
+            logger.debug("Stringified Project Data: " + stringifiedData);
+            var parsedData = JSON.parse(stringifiedData);
+            logger.debug(parsedData);
+
+            logger.info("api.post()");
+            var response = api.post("/projects", {project: parsedData});
+            logger.debug("API Response: " + response);
+
+            // FIXME: Implement API error handling
+            // if (response == undefined) {
+            //   self.message("No response from the server, please check internet connection!");
+            // } else {
+            //   if (response.errors) self.message(response.errors[0]);
+            //   self.message(_("Export complete!"));
+            // }
+            //
+            // TODO: Open project link after exporting
+
+            if (response) self.wantsStop = true;
           }
+        }
 
-          if( self.wantsStop === true ){
-            coscript.setShouldKeepAround(false);
-            return interval.cancel();
-          }
+        if( self.wantsStop === true ){
+          coscript.setShouldKeepAround(false);
+          return interval.cancel();
+        }
 
 
-        });
-      }
+      });
     }
-  },
-  postToApi: function(data) {
-    logger.info("DraftApp.postToApi()");
-
-    res = api.post("/projects", data);
-
-    logger.debug(res);
   },
   writeFile: function(options) {
     var options = this.extend(options, {
@@ -2712,18 +2521,12 @@ DraftApp.extend({
     document = this.document,
     slice = MSExportRequest.exportRequestsFromExportableLayer(options.layer).firstObject(),
     savePathName = [];
+    logger.debug("path:" + this.toJSString(NSTemporaryDirectory()));
 
     slice.scale = options.scale;
     slice.format = options.format;
 
-    savePathName.push(
-        options.path,
-        "/",
-        options.name,
-        options.suffix,
-        ".",
-        options.format
-        );
+    savePathName.push(options.path, "/", options.name, options.suffix, ".", options.format);
     savePathName = savePathName.join("");
 
     document.saveArtboardOrSlice_toFile(slice, savePathName);
@@ -2739,6 +2542,7 @@ DraftApp.extend({
       var textLayer = layer.children()[2];
 
       data.notes_attributes.push({
+        objectID: this.toJSString( layer.objectID() ),
         rect: this.rectToJSON(textLayer.absoluteRect(), artboardRect),
         note: this.toHTMLEncode(textLayer.stringValue()).replace(/\n/g, "<br>")
       });
