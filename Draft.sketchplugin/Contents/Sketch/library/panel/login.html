@@ -85,9 +85,12 @@
               success: function (data, textStatus, request) {
                 $("#signin-btn").html('Done!');
 
-                // Read and save the access token
+                // Read and save the auth headers
                 var options = {};
                 options.accessToken = request.getResponseHeader("access-token");
+                options.client = request.getResponseHeader("client");
+                options.expiry = request.getResponseHeader("expiry");
+                options.uid = request.getResponseHeader("uid");
 
                 SMAction(options);
               },
