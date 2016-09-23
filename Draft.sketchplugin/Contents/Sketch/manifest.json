@@ -11,50 +11,43 @@
     {
       "name": "Add Note",
       "identifier": "commandNote",
-      "shortcut": "ctrl shift 5",
+      "shortcut": "ctrl shift 1",
       "handler" : "commandNote",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Overlay",
       "identifier": "commandOverlays",
-      "shortcut": "ctrl shift 1",
+      "shortcut": "ctrl shift 2",
       "handler" : "commandOverlays",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Property",
       "identifier": "commandProperties",
-      "shortcut": "ctrl shift 4",
+      "shortcut": "ctrl shift 3",
       "handler" : "commandProperties",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Size",
       "identifier": "commandSizes",
-      "shortcut": "ctrl shift 2",
+      "shortcut": "ctrl shift 4",
       "handler" : "commandSizes",
       "script": "mark.sketchscript"
     },
     {
       "name": "Add Spacing",
       "identifier": "commandSpacings",
-      "shortcut": "ctrl shift 3",
+      "shortcut": "ctrl shift 5",
       "handler" : "commandSpacings",
       "script": "mark.sketchscript"
     },
     {
-      "name": "Spec Export",
+      "name": "Export to Draft",
       "identifier": "commandExport",
       "shortcut": "ctrl shift e",
       "handler" : "commandExport",
-      "script": "mark.sketchscript"
-    },
-    {
-      "name": "Clear marks",
-      "identifier": "commandClear",
-      "shortcut": "",
-      "handler": "commandClear",
       "script": "mark.sketchscript"
     },
     {
@@ -100,16 +93,16 @@
     "items" : [
       "commandToolBar",
       "-",
+      "commandColor",
       "commandExportable",
       "commandExport",
-      "commandColor",
       "-",
       "commandNote",
       "commandOverlays",
       "commandProperties",
       "commandSizes",
       "commandSpacings",
-      "commandClear",
+      "commandSettings",
       "-",
       "commandVisit",
       "commandSetting",
