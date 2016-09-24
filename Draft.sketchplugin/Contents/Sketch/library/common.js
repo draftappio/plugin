@@ -2374,9 +2374,13 @@ DraftApp.extend({
       self.single = false;
       self.wantsStop = false;
 
-      coscript.scheduleWithRepeatingInterval_jsFunction( 0, function( interval ){
+      coscript.scheduleWithRepeatingInterval_jsFunction(0, function(interval) {
         // self.message('Processing layer ' + idx + ' of ' + self.allCount);
-        processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
+        if (Math.round( idx / self.allCount * 100 ) < 100 ) {
+          processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
+        } else {
+          processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Sending data to Draft..") + "')");
+        }
         idx++;
 
         if(!data.artboards_attributes[artboardIndex]){
@@ -2474,7 +2478,9 @@ DraftApp.extend({
             //
             // TODO: Open project link after exporting
 
-            if (response) self.wantsStop = true;
+            if (response) {
+              self.wantsStop = true;
+            }
           }
         }
 
@@ -2482,8 +2488,6 @@ DraftApp.extend({
           coscript.setShouldKeepAround(false);
           return interval.cancel();
         }
-
-
       });
     }
   },
