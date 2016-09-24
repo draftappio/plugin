@@ -2612,15 +2612,5 @@ DraftApp.extend({
     this.checkSlice(layer, layerData, symbolLayer);
     data.layers.push(layerData);
     this.checkSymbol(artboard, layer, layerData, data);
-  },
-  template: function(content, data) {
-    var content = content.replace(new RegExp("\\<\\!\\-\\-\\s([^\\s\\-\\-\\>]+)\\s\\-\\-\\>", "gi"), function($0, $1) {
-      if ($1 in data) {
-        return data[$1];
-      } else {
-        return $0;
-      }
-    });
-    return content;
   }
 });
