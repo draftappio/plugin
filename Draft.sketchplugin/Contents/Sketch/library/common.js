@@ -1013,7 +1013,7 @@ DraftApp.extend({
     return this.SMPanel({
       url: this.pluginSketch + "/panel/login.html",
       width: 440,
-      height: 500,
+      height: 480,
       data: data,
       callback: function( data ){
         logger.info("loginPanel()");
