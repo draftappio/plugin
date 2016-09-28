@@ -25,6 +25,10 @@
   border-radius:4px;
 }
 
+.alert {
+  color: red;
+}
+
 body{
   padding: 2px 0 0;
   -webkit-user-select: none;

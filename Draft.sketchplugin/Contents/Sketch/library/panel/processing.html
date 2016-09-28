@@ -11,27 +11,24 @@
     <script type="text/javascript" src="assets/js/jquery-2.2.4.min.js"></script>
     <script type="text/javascript" src="assets/js/common.js"></script>
     <script type="text/javascript">
-    <!--
-    var init = function(options){
-            $('body').html([
-                '<div class="container">',
-                    '<div class="process-box">',
-                        '<div class="process-bg"><div id="processing" class="processing"></div></div>',
-                        '<p id="processing-text"></p>',
-                    '</div>',
-                '</div>'
-                ].join(''));
-            $('#processing').css('width', 0);
-        },
-        processing = function(percentage, text){
-            if(percentage == '101%'){
-                SMAction([]);
-            }
-            $('#processing').css('width', percentage);
-            $('#processing-text').text(text);
+      var init = function(options) {
+        $('body').html([
+            '<div class="container">',
+            '<div class="process-box">',
+            '<div class="process-bg"><div id="processing" class="processing"></div></div>',
+            '<p id="processing-text"></p>',
+            '</div>',
+            '</div>'
+        ].join(''));
+        $('#processing').css('width', 0);
+      },
+        processing = function(percentage, text) {
+          if(percentage == '101%'){
+            SMAction([]);
+          }
+          $('#processing').css('width', percentage);
+          $('#processing-text').text(text);
         }
-    // $(function(){init()})
-    -->
     </script>
   </head>
   <body></body>

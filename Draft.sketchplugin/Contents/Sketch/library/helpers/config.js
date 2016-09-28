@@ -29,47 +29,53 @@ DraftApp.extend({
     command.setValue_forKey_onLayer(null, prefix, container)
   },
   saveAuthHeaders: function (data) {
-    logger.info('config.saveAuthHeaders()');
-
     var accessToken = data.accessToken;
     var client      = data.client;
     var expiry      = data.expiry;
     var uid         = data.uid;
 
-    logger.debug("accessToken: " + accessToken);
-    logger.debug("client: " + client);
-    logger.debug("expiry: " + expiry);
-    logger.debug("uid: " + uid);
+    logger.debug("config.saveAuthHeaders(): tokens: " + JSON.stringify(data));
 
-    [[NSUserDefaults standardUserDefaults] setObject:accessToken forKey:"token"];
-    [[NSUserDefaults standardUserDefaults] setObject:client forKey:"client"];
-    [[NSUserDefaults standardUserDefaults] setObject:expiry forKey:"expiry"];
-    [[NSUserDefaults standardUserDefaults] setObject:uid forKey:"uid"];
+    [[NSUserDefaults standardUserDefaults] setObject:accessToken forKey:"draft.accesstoken"];
+    [[NSUserDefaults standardUserDefaults] setObject:client forKey:"draft.client"];
+    [[NSUserDefaults standardUserDefaults] setObject:expiry forKey:"draft.expiry"];
+    [[NSUserDefaults standardUserDefaults] setObject:uid forKey:"draft.uid"];
     [[NSUserDefaults standardUserDefaults] synchronize];
   },
   readAuthHeaders: function () {
-    logger.info("config.readAuthHeaders()");
-
     var data = {};
 
-    data.accessToken = [[NSUserDefaults standardUserDefaults] objectForKey:"token"];
-    data.client      = [[NSUserDefaults standardUserDefaults] objectForKey:"client"];
-    data.expiry      = [[NSUserDefaults standardUserDefaults] objectForKey:"expiry"];
-    data.uid         = [[NSUserDefaults standardUserDefaults] objectForKey:"uid"];
+    data.accessToken = [[NSUserDefaults standardUserDefaults] objectForKey:"draft.accesstoken"];
+    data.client      = [[NSUserDefaults standardUserDefaults] objectForKey:"draft.client"];
+    data.expiry      = [[NSUserDefaults standardUserDefaults] objectForKey:"draft.expiry"];
+    data.uid         = [[NSUserDefaults standardUserDefaults] objectForKey:"draft.uid"];
 
     return data;
   },
   isAuthHeaderExist: function () {
-    if (!this.readAuthHeaders().accessToken) return false;
+    logger.info("Checking if auth tokens exist");
+    var authHeaders = this.readAuthHeaders();
 
+    logger.debug("api.isAuthHeaderExist(): accessToken: " + authHeaders.accessToken);
+
+    if (!authHeaders.accessToken) return false;
+    if (!authHeaders.client) return false;
+    if (!authHeaders.expiry) return false;
+    if (!authHeaders.uid) return false;
+
+    logger.info("Tokens exist!");
     return true;
   },
   resetAccessToken: function () {
     logger.info("config.resetAccessToken()");
-    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"token"];
-    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"client"];
-    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"expiry"];
-    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"uid"];
+    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.token"];
+    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.client"];
+    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.expiry"];
+    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.uid"];
     [[NSUserDefaults standardUserDefaults] synchronize];
+  },
+  isEmpty: function (obj) {
+   for (var x in obj) { return false; }
+   return true;
   }
 });

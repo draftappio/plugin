@@ -98,7 +98,7 @@ DraftApp.extend({
       case "login-logout":
         if(this.isAuthHeaderExist()) {
           this.resetAccessToken();
-          this.loggedoutPanel();
+          // TODO: this.actionPanel();
         } else {
           this.loginPanel();
         }
@@ -951,19 +951,24 @@ DraftApp.extend({
     }
 
     data.authHeaders             = this.readAuthHeaders();
-    data.authHeaders.accessToken = this.toJSString(data.authHeaders.accessToken);
-    data.authHeaders.client      = this.toJSString(data.authHeaders.client);
-    data.authHeaders.expiry      = this.toJSString(data.authHeaders.expiry);
-    data.authHeaders.uid         = this.toJSString(data.authHeaders.uid);
+    logger.debug("settingsPanel(): accessToken: " + data.authHeaders.accessToken);
+    // data.authHeaders.accessToken = this.toJSString(data.authHeaders.accessToken);
+    // data.authHeaders.client      = this.toJSString(data.authHeaders.client);
+    // data.authHeaders.expiry      = this.toJSString(data.authHeaders.expiry);
+    // data.authHeaders.uid         = this.toJSString(data.authHeaders.uid);
+
+    var response = api.get("/projects/project_names", {});
+    data.projectNames = response.body;
+    if (!response) return false;
 
     return this.SMPanel({
       width: 340,
       height: 430,
       data: data,
-      callback: function( data ){
+      callback: function(data) {
         logger.debug("Settings set: " + JSON.stringify(data));
         self.configs = self.setConfigs(data);
-        self.saveAuthHeaders(data.authData);
+        // self.saveAuthHeaders(data.authData);
       }
     });
 
@@ -1000,14 +1005,14 @@ DraftApp.extend({
       width: 240,
       height: 314,
       data: data,
-      callback: function( data ){
+      callback: function( data ) {
         self.configs = self.setConfigs({
           spacings: data
         });
       }
     });
   },
-  loginPanel: function(){
+  loginPanel: function() {
     var self = this,
     data = {};
     return this.SMPanel({
@@ -1016,35 +1021,23 @@ DraftApp.extend({
       height: 480,
       data: data,
       callback: function( data ){
-        logger.info("loginPanel()");
-        logger.info("Token: " + data.accessToken);
-        logger.info("Expiry: " + data.expiry);
+        logger.debug("loginPanel(): tokens: " + JSON.stringify(data));
         self.saveAuthHeaders(data);
       }
     });
   },
-  alreadyLoggedPanel: function() {
-    var self = this,
-    data = {};
-    return this.SMPanel({
-      url: this.pluginSketch + "/panel/alreadyLogged.html",
-      width: 304,
-      height: 134,
-      data,
-      callback: function( data ){}
-    });
-  },
-  loggedoutPanel: function() {
-    var self = this,
-    data = {};
-    return this.SMPanel({
-      url: this.pluginSketch + "/panel/loggedout.html",
-      width: 304,
-      height: 134,
-      data,
-      callback: function( data ){}
-    });
-  },
+  // actionPanel: function() {
+  //   var self = this,
+  //   data = {};
+  //   logger.debug("In Action Panel");
+  //   return this.SMPanel({
+  //     url: this.pluginSketch + "/panel/action.html",
+  //     width: 304,
+  //     height: 134,
+  //     data,
+  //     callback: function( data ){}
+  //   });
+  // },
   propertiesPanel: function(){
     var self = this,
     data = (this.configs.properties)? this.configs.properties: {
@@ -2347,6 +2340,7 @@ DraftApp.extend({
         return false;
       }
       var self = this;
+      var message = "";
 
       // self.message(_("Exporting..."));
       var processingPanel = this.SMPanel({
@@ -2460,13 +2454,19 @@ DraftApp.extend({
             }
 
             var stringifiedData = JSON.stringify(data);
-            logger.debug("Stringified Project Data: " + stringifiedData);
+            logger.debug("Project Data To Be Sent: " + stringifiedData);
             var parsedData = JSON.parse(stringifiedData);
             logger.debug(parsedData);
 
             logger.info("api.post()");
-            var response = api.post("/projects", {project: parsedData});
-            logger.debug("API Response: " + response);
+            var response = api.post("/projects", { project: parsedData });
+            logger.debug("RESPONSEE: " + response.statusCode);
+
+            // if (response.statusCode.toString().match(/4\d+/)) {
+              // message = "Project data is sucessfully sent to Draft.";
+            // } else {
+              // message = "There is a problem sending the data, please try again!";
+            // }
 
             // FIXME: Implement API error handling
             // if (response == undefined) {
@@ -2486,6 +2486,9 @@ DraftApp.extend({
 
         if( self.wantsStop === true ){
           coscript.setShouldKeepAround(false);
+          // var action = actionPanel.windowScriptObject();
+          // logger.debug("trying to open action panel");
+          // action.evaluateWebScript("action('" + message + "')");
           return interval.cancel();
         }
       });

@@ -62,58 +62,76 @@
             }
         },
         getProjectNames = function(data) {
-          var projectNames = [];
+          var projectNames = data.projectNames;
 
-          $('.projects-title').html("Fetching projects...");
-          $('#submit').prop('disabled', true);
-          $('#projectName').click();
+          // $('#projectName').click();
+          projectNames = data.projectNames;
+          $(".projectName ul").html('');
 
-          $.ajax({
-            url: "http://localhost:3000/projects/project_names",
-            type: "GET",
-            beforeSend: function (request) {
-              request.setRequestHeader('access-token', data.authHeaders.accessToken);
-              request.setRequestHeader('client', data.authHeaders.client);
-              request.setRequestHeader('expiry', data.authHeaders.expiry);
-              request.setRequestHeader('uid', data.authHeaders.uid);
-            },
-            data: data,
-            contentType: "application/json",
-            success: function (data, textStatus, request) {
-              projectNames = data;
-              if (projectNames.length > 0) {
-                $(".projectName ul").html('');
-
-                for (i = 0; i < projectNames.length; i++) {
-                  var project = projectNames[i];
-                  $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
-                }
-              }
-              // Read the auth headers, to be saved later
-              authData.accessToken = request.getResponseHeader("access-token");
-              authData.client = request.getResponseHeader("client");
-              authData.expiry = request.getResponseHeader("expiry");
-              authData.uid = request.getResponseHeader("uid");
+          if (projectNames.length > 0) {
+            for (i = 0; i < projectNames.length; i++) {
+              var project = projectNames[i];
+              $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
             }
-          }).done(function() {
-            $('.projects-title').html("Project name");
-            $('#submit').prop('disabled', false);
+          } else {
+            $(".projectName").html('');
+            $(".projectName").append("<h3 class=\"title alert\">Please visit Draft and create a project!</h3>");
+          }
 
-            if (data) {
-              $('#' + data.projectName).click();
-            } else {
-              $('#' + projectNames[0].slug).click();
-            }
+          if (data) {
+            $('#' + data.projectName).click();
+          } else {
+            $('#' + projectNames[0].slug).click();
+          }
 
-            bindSelectBoxClicks();
-          });
+          bindSelectBoxClicks();
+          // $.ajax({
+          //   url: "http://localhost:3000/projects/project_names",
+          //   type: "GET",
+          //   beforeSend: function (request) {
+          //     request.setRequestHeader('access-token', data.authHeaders.accessToken);
+          //     request.setRequestHeader('client', data.authHeaders.client);
+          //     request.setRequestHeader('expiry', data.authHeaders.expiry);
+          //     request.setRequestHeader('uid', data.authHeaders.uid);
+          //   },
+          //   contentType: "application/json",
+          //   success: function (data, textStatus, request) {
+          //     projectNames = data;
+          //     $(".projectName ul").html('');
+          //     if (projectNames.length > 0) {
+          //       for (i = 0; i < projectNames.length; i++) {
+          //         var project = projectNames[i];
+          //         $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
+          //       }
+          //     } else {
+          //       $(".projectName").html('');
+          //       $(".projectName").append("<h3 class=\"title alert\">Please visit Draft and create a project!</h3>");
+          //     }
+          //     // Read the auth headers, to be saved later
+          //     authData.accessToken = request.getResponseHeader("access-token");
+          //     authData.client = request.getResponseHeader("client");
+          //     authData.expiry = request.getResponseHeader("expiry");
+          //     authData.uid = request.getResponseHeader("uid");
+          //   }
+          // }).done(function() {
+          //   $('.projects-title').html("Project name");
+          //   $('#submit').prop('disabled', false);
+          //
+          //   if (data) {
+          //     $('#' + data.projectName).click();
+          //   } else {
+          //     $('#' + projectNames[0].slug).click();
+          //   }
+          //
+          //   bindSelectBoxClicks();
+          // });
         },
         checkResolution = function(DRID){
             $('#' + DRID).click();
         },
         submit = function(){
             SMAction({
-              projectName: $('input[name=projectName]:checked').val(),
+              projectName: $('input[name=projectName]:checked').val() || "empty",
               scale: $('input[name=scale]').val(),
               unit: $('input[name=unit]').val(),
               colorFormat: $('input[name=format]:checked').val(),
