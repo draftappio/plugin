@@ -957,11 +957,6 @@ DraftApp.extend({
       return false;
     }
 
-    logger.debug("settingsPanel(): data.projectName: " + data.projectName);
-    logger.debug("settingsPanel(): data.scale: " + data.scale);
-    logger.debug("settingsPanel(): data.unit: " + data.unit);
-    logger.debug("settingsPanel(): data.colorFormat: " + data.colorFormat);
-
     return this.SMPanel({
       width: 340,
       height: 430,
@@ -969,7 +964,6 @@ DraftApp.extend({
       callback: function(data) {
         logger.debug("Settings set: " + JSON.stringify(data));
         self.configs = self.setConfigs(data);
-        // self.saveAuthHeaders(data.authData);
       }
     });
 
@@ -2455,7 +2449,7 @@ DraftApp.extend({
             }
 
             var stringifiedData = JSON.stringify(data);
-            logger.debug("Project Data To Be Sent: " + stringifiedData);
+            logger.debug("Project data to be sent: " + stringifiedData);
             var parsedData = JSON.parse(stringifiedData);
             logger.debug(parsedData);
 
