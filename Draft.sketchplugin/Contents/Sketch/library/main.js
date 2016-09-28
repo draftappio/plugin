@@ -22,8 +22,8 @@ DraftApp.extend({
       .stringByDeletingLastPathComponent()
       .stringByDeletingLastPathComponent();
     this.pluginSketch = this.pluginRoot + "/Contents/Sketch/library";
-    // this.apiURL = "http://api.draftapp.io";
-    this.apiURL = "http://localhost:3000";
+    this.apiURL = "http://api.draftapp.io";
+    // this.apiURL = "http://localhost:3000";
 
     if(command == "toolbar"){
       this.ToolBar();
@@ -1021,18 +1021,18 @@ DraftApp.extend({
       }
     });
   },
-  // actionPanel: function() {
-  //   var self = this,
-  //   data = {};
-  //   logger.debug("In Action Panel");
-  //   return this.SMPanel({
-  //     url: this.pluginSketch + "/panel/action.html",
-  //     width: 304,
-  //     height: 134,
-  //     data,
-  //     callback: function( data ){}
-  //   });
-  // },
+  actionPanel: function() {
+    var self = this,
+    data = {};
+    logger.debug("In Action Panel");
+    return this.SMPanel({
+      url: this.pluginSketch + "/panel/action.html",
+      width: 304,
+      height: 134,
+      data,
+      callback: function( data ){}
+    });
+  },
   propertiesPanel: function(){
     var self = this,
     data = (this.configs.properties)? this.configs.properties: {
@@ -2365,10 +2365,10 @@ DraftApp.extend({
 
       coscript.scheduleWithRepeatingInterval_jsFunction(0, function(interval) {
         // self.message('Processing layer ' + idx + ' of ' + self.allCount);
-        if (Math.round( idx / self.allCount * 100 ) < 100 ) {
-          processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
+        if (Math.round(idx / self.allCount * 100) < 99 ) {
+          processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
         } else {
-          processing.evaluateWebScript("processing('"  + Math.round( idx / self.allCount * 100 ) +  "%', '" + _("Sending data to Draft..") + "')");
+          processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Sending data to Draft..") + "')");
         }
         idx++;
 

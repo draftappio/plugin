@@ -1,4 +1,4 @@
-@import "library/common.js"
+@import "library/main.js"
 @import "library/MochaJSDelegate.js"
 
 function commandOverlays(context) {
