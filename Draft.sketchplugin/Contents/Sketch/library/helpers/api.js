@@ -102,8 +102,6 @@ Api.prototype.request = function(method, path, params) {
     return json;
   }
 
-  logger.debug("HHHHRRRRLLL");
-  logger.debug("error.value() " + error.value());
   // Handle other status codes
   if (!error.value() && res) {
     var statusCode = [[response value] statusCode];
@@ -138,7 +136,6 @@ Api.prototype.request = function(method, path, params) {
 
   } else {
     logger.error("error");
-    // TODO: Return that we need to do login as tokens are no existing
     return false;
   }
 };

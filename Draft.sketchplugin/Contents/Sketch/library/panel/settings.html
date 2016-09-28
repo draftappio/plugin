@@ -11,7 +11,6 @@
     <script type="text/javascript" src="assets/js/jquery-2.2.4.min.js"></script>
     <script type="text/javascript" src="assets/js/common.js"></script>
     <script type="text/javascript">
-    var authData = {};
     var bindSelectBoxClicks = function(){
       $('.selectbox').each(function(index){
         var $this = $(this);
@@ -37,274 +36,213 @@
       });
     },
     getDesignResolutionID = function(scale, unit){
-            var scale = scale || 1,
-                unit = unit || 'px';
+      var scale = scale || 1,
+      unit = unit || 'px';
 
-            scale = scale.toString().replace('.', '_');
-            unit = unit.replace('/', '_');
+      scale = scale.toString().replace('.', '_');
+      unit = unit.replace('/', '_');
 
-            id = unit + '-' + scale;
+      id = unit + '-' + scale;
 
-            if($('#' + id).length <= 0) return 'custom';
+      if($('#' + id).length <= 0) return 'custom';
 
-            return id;
+      return id;
 
-        },
-        getScaleWidthUnit = function( id ){
-            if (id == 'custom') return false;
-            var id = id.split('-'),
-                unit = id[0],
-                scale = id[1];
+    },
+    getScaleWidthUnit = function( id ){
+      if (id == 'custom') return false;
+      var id = id.split('-'),
+        unit = id[0],
+        scale = id[1];
 
-            return {
-                scale: Number(scale.replace('_', '.')),
-                unit: unit.replace('_', '/')
-            }
-        },
-        getProjectNames = function(data) {
-          var projectNames = data.projectNames;
+        return {
+          scale: Number(scale.replace('_', '.')),
+          unit: unit.replace('_', '/')
+        }
+    },
+    getProjectNames = function(data) {
+      var projectNames = data.projectNames;
 
-          // $('#projectName').click();
-          projectNames = data.projectNames;
-          $(".projectName ul").html('');
+      if (projectNames.length > 0) {
+        for (i = 0; i < projectNames.length; i++) {
+          var project = projectNames[i];
+          $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
+        }
+      } else {
+        $(".projectName").html('');
+        $(".projectName").append("<h3 class=\"title alert\">Please visit Draft and create a project!</h3>");
+      }
 
-          if (projectNames.length > 0) {
-            for (i = 0; i < projectNames.length; i++) {
-              var project = projectNames[i];
-              $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
-            }
-          } else {
-            $(".projectName").html('');
-            $(".projectName").append("<h3 class=\"title alert\">Please visit Draft and create a project!</h3>");
-          }
+      $('#' + projectNames[0].slug).click();
 
-          if (data) {
-            $('#' + data.projectName).click();
-          } else {
-            $('#' + projectNames[0].slug).click();
-          }
-
-          bindSelectBoxClicks();
-          // $.ajax({
-          //   url: "http://localhost:3000/projects/project_names",
-          //   type: "GET",
-          //   beforeSend: function (request) {
-          //     request.setRequestHeader('access-token', data.authHeaders.accessToken);
-          //     request.setRequestHeader('client', data.authHeaders.client);
-          //     request.setRequestHeader('expiry', data.authHeaders.expiry);
-          //     request.setRequestHeader('uid', data.authHeaders.uid);
-          //   },
-          //   contentType: "application/json",
-          //   success: function (data, textStatus, request) {
-          //     projectNames = data;
-          //     $(".projectName ul").html('');
-          //     if (projectNames.length > 0) {
-          //       for (i = 0; i < projectNames.length; i++) {
-          //         var project = projectNames[i];
-          //         $(".projectName ul").append("<li><label id=" + project.slug + "><input type=\"radio\" name=\"projectName\" value=" + project.slug + "><span>" + project.name + "</span></label></li>");
-          //       }
-          //     } else {
-          //       $(".projectName").html('');
-          //       $(".projectName").append("<h3 class=\"title alert\">Please visit Draft and create a project!</h3>");
-          //     }
-          //     // Read the auth headers, to be saved later
-          //     authData.accessToken = request.getResponseHeader("access-token");
-          //     authData.client = request.getResponseHeader("client");
-          //     authData.expiry = request.getResponseHeader("expiry");
-          //     authData.uid = request.getResponseHeader("uid");
-          //   }
-          // }).done(function() {
-          //   $('.projects-title').html("Project name");
-          //   $('#submit').prop('disabled', false);
-          //
-          //   if (data) {
-          //     $('#' + data.projectName).click();
-          //   } else {
-          //     $('#' + projectNames[0].slug).click();
-          //   }
-          //
-          //   bindSelectBoxClicks();
-          // });
-        },
-        checkResolution = function(DRID){
-            $('#' + DRID).click();
-        },
-        submit = function(){
-            SMAction({
-              projectName: $('input[name=projectName]:checked').val() || "empty",
-              scale: $('input[name=scale]').val(),
-              unit: $('input[name=unit]').val(),
-              colorFormat: $('input[name=format]:checked').val(),
-              authData: authData
-            });
-            // console.log(window.location.hash)
-        },
-        init = function(data){
-            $('body').html([
-                '<div class="container">',
-                    '<div class="options">',
-                        '<h3 class="title projects-title">' + _('Project name') + '</h3>',
-                        '<div class="projectName selectbox mrb16" tabindex="0">',
-                            '<div class="selectwrap">',
-                                '<h3>' + _('Project name') + '</h3>',
-                                '<p></p>',
-                                '<ul>',
-                                  '<li><label id="projectName"><input type="radio" name="projectName" value="nil"><span>Fetching projects...</span></label></li>',
-                                '</ul>',
-                            '</div>',
-                        '</div>',
-                        '<h3 class="title">' + _('Design resolution') + '</h3>',
-                        '<div class="resolution selectbox mrb16" tabindex="0">',
-                            '<div class="selectwrap">',
-                                '<h3>' + _('Design resolution') + '</h3>',
-                                '<p class="test"></p>',
-                                '<ul>',
-                                    '<li><label id="custom"><input type="radio" name="resolution-type" value="custom"><span>' + _('Custom') + '</span></label></li>',
-                                    '<li><label id="px-1"><input type="radio" name="resolution-type" value="px-1"><span>' + _('Standard') + '</span></label></li>',
-                                    '<li class="sub-title">' + _('iOS Devices') + '</li>',
-                                    '<li><label id="pt-1"><input type="radio" name="resolution-type" value="pt-1"><span>' + _('Points') + ' @1x</span></label></li>',
-                                    '<li><label id="pt-2"><input type="radio" name="resolution-type" value="pt-2"><span>' + _('Retina') + ' @2x</span></label></li>',
-                                    '<li><label id="pt-3"><input type="radio" name="resolution-type" value="pt-3"><span>' + _('Retina HD') + ' @3x</span></label></li>',
-                                    '<li class="sub-title">' + _('Android Devices') + '</li>',
-                                    '<li><label id="dp_sp-0_75"><input type="radio" name="resolution-type" value="dp_sp-0_75"><span>' + _('LDPI') + ' @0.75x</span></label></li>',
-                                    '<li><label id="dp_sp-1"><input type="radio" name="resolution-type" value="dp_sp-1"><span>' + _('MDPI') + ' @1x</span></label></li>',
-                                    '<li><label id="dp_sp-1_5"><input type="radio" name="resolution-type" value="dp_sp-1_5"><span>' + _('HDPI') + ' @1.5x</span></label></li>',
-                                    '<li><label id="dp_sp-2"><input type="radio" name="resolution-type" value="dp_sp-2"><span>' + _('XHDPI') + ' @2x</span></label></li>',
-                                    '<li><label id="dp_sp-3"><input type="radio" name="resolution-type" value="dp_sp-3"><span>' + _('XXHDPI') + ' @3x</span></label></li>',
-                                    '<li><label id="dp_sp-4"><input type="radio" name="resolution-type" value="dp_sp-4"><span>' + _('XXXHDPI') + ' @4x</span></label></li>',
-                                    '<li class="sub-title">' + _('Other Devices') + '</li>',
-                                    '<li><label id="gu-27"><input type="radio" name="resolution-type" value="gu-27"><span>' + _('Ubuntu Grid') + '</span></label></li>',
-                                    '<li class="sub-title">' + _('Web View') + '</li>',
-                                    '<li><label id="rem-12"><input type="radio" name="resolution-type" value="rem-12"><span>' + _('CSS Rem') + ' 12px</span></label></li>',
-                                    '<li><label id="rem-14"><input type="radio" name="resolution-type" value="rem-14"><span>' + _('CSS Rem') + ' 14px</span></label></li>',
-                                '</ul>',
-                            '</div>',
-                        '</div>',
-                        '<div class="input-text mrb16">',
-                            '<input type="text" name="scale" value="2">',
-                            '<label for="top">' + _('Scale') + '</label>',
-                        '</div>',
-                        '<div class="input-text mrb24">',
-                            '<input type="text" name="unit" value="dp/sp">',
-                            '<label for="top">' + _('Unit') + '</label>',
-                        '</div>',
-                        '<h3 class="title">' + _('Color format') + '</h3>',
-                        '<div class="color-format selectbox" tabindex="0">',
-                            '<div class="selectwrap">',
-                                '<h3>' + _('Color format') + '</h3>',
-                                '<p></p>',
-                                '<ul>',
-                                    '<li><label id="color-hex"><input type="radio" name="format" value="color-hex"><span>' + _('Color hex') + '</span><i>#000000 100%</i></label></li>',
-                                    '<li><label id="argb-hex"><input type="radio" name="format" value="argb-hex"><span>' + _('ARGB hex') + '</span><i>#FF000000</i></label></li>',
-                                    '<li><label id="css-rgba"><input type="radio" name="format" value="css-rgba"><span>' + _('RGBA CSS') + '</span><i>rgba(0, 0, 0, 1)</i></label></li>',
-                                    '<li><label id="ui-color"><input type="radio" name="format" value="ui-color"><span>' + _('UIColor') + '</span><i>r: 1.0, g: 0.0, b: 0.0, a: 1.0</i></label></li>',
-                                '</ul>',
-                            '</div>',
+    },
+    checkResolution = function(DRID){
+      $('#' + DRID).click();
+    },
+    submit = function(){
+      SMAction({
+        projectName: $('input[name=projectName]:checked').val() || "empty",
+        scale: $('input[name=scale]').val(),
+        unit: $('input[name=unit]').val(),
+        colorFormat: $('input[name=format]:checked').val()
+      });
+      // console.log(window.location.hash)
+    },
+    init = function(data){
+        $('body').html([
+            '<div class="container">',
+                '<div class="options">',
+                    '<h3 class="title projects-title">' + _('Project name') + '</h3>',
+                    '<div class="projectName selectbox mrb16" tabindex="0">',
+                        '<div class="selectwrap">',
+                            '<h3>' + _('Project name') + '</h3>',
+                            '<p></p>',
+                            '<ul>',
+                            '</ul>',
                         '</div>',
                     '</div>',
-                    '<div class="footer">',
-                        '<button id="submit" class="submit">' + _('Save') + '</button>',
+                    '<h3 class="title">' + _('Design resolution') + '</h3>',
+                    '<div class="resolution selectbox mrb16" tabindex="0">',
+                        '<div class="selectwrap">',
+                            '<h3>' + _('Design resolution') + '</h3>',
+                            '<p></p>',
+                            '<ul>',
+                                '<li><label id="custom"><input type="radio" name="resolution-type" value="custom"><span>' + _('Custom') + '</span></label></li>',
+                                '<li><label id="px-1"><input type="radio" name="resolution-type" value="px-1"><span>' + _('Standard') + '</span></label></li>',
+                                '<li class="sub-title">' + _('iOS Devices') + '</li>',
+                                '<li><label id="pt-1"><input type="radio" name="resolution-type" value="pt-1"><span>' + _('Points') + ' @1x</span></label></li>',
+                                '<li><label id="pt-2"><input type="radio" name="resolution-type" value="pt-2"><span>' + _('Retina') + ' @2x</span></label></li>',
+                                '<li><label id="pt-3"><input type="radio" name="resolution-type" value="pt-3"><span>' + _('Retina HD') + ' @3x</span></label></li>',
+                                '<li class="sub-title">' + _('Android Devices') + '</li>',
+                                '<li><label id="dp_sp-0_75"><input type="radio" name="resolution-type" value="dp_sp-0_75"><span>' + _('LDPI') + ' @0.75x</span></label></li>',
+                                '<li><label id="dp_sp-1"><input type="radio" name="resolution-type" value="dp_sp-1"><span>' + _('MDPI') + ' @1x</span></label></li>',
+                                '<li><label id="dp_sp-1_5"><input type="radio" name="resolution-type" value="dp_sp-1_5"><span>' + _('HDPI') + ' @1.5x</span></label></li>',
+                                '<li><label id="dp_sp-2"><input type="radio" name="resolution-type" value="dp_sp-2"><span>' + _('XHDPI') + ' @2x</span></label></li>',
+                                '<li><label id="dp_sp-3"><input type="radio" name="resolution-type" value="dp_sp-3"><span>' + _('XXHDPI') + ' @3x</span></label></li>',
+                                '<li><label id="dp_sp-4"><input type="radio" name="resolution-type" value="dp_sp-4"><span>' + _('XXXHDPI') + ' @4x</span></label></li>',
+                                '<li class="sub-title">' + _('Other Devices') + '</li>',
+                                '<li><label id="gu-27"><input type="radio" name="resolution-type" value="gu-27"><span>' + _('Ubuntu Grid') + '</span></label></li>',
+                                '<li class="sub-title">' + _('Web View') + '</li>',
+                                '<li><label id="rem-12"><input type="radio" name="resolution-type" value="rem-12"><span>' + _('CSS Rem') + ' 12px</span></label></li>',
+                                '<li><label id="rem-14"><input type="radio" name="resolution-type" value="rem-14"><span>' + _('CSS Rem') + ' 14px</span></label></li>',
+                            '</ul>',
+                        '</div>',
                     '</div>',
-                '</div>'
-                ].join(''));
+                    '<div class="input-text mrb16">',
+                        '<input type="text" name="scale" value="2">',
+                        '<label for="top">' + _('Scale') + '</label>',
+                    '</div>',
+                    '<div class="input-text mrb24">',
+                        '<input type="text" name="unit" value="dp/sp">',
+                        '<label for="top">' + _('Unit') + '</label>',
+                    '</div>',
+                    '<h3 class="title">' + _('Color format') + '</h3>',
+                    '<div class="color-format selectbox" tabindex="0">',
+                        '<div class="selectwrap">',
+                            '<h3>' + _('Color format') + '</h3>',
+                            '<p></p>',
+                            '<ul>',
+                                '<li><label id="color-hex"><input type="radio" name="format" value="color-hex"><span>' + _('Color hex') + '</span><i>#000000 100%</i></label></li>',
+                                '<li><label id="argb-hex"><input type="radio" name="format" value="argb-hex"><span>' + _('ARGB hex') + '</span><i>#FF000000</i></label></li>',
+                                '<li><label id="css-rgba"><input type="radio" name="format" value="css-rgba"><span>' + _('RGBA CSS') + '</span><i>rgba(0, 0, 0, 1)</i></label></li>',
+                                '<li><label id="ui-color"><input type="radio" name="format" value="ui-color"><span>' + _('UIColor') + '</span><i>r: 1.0, g: 0.0, b: 0.0, a: 1.0</i></label></li>',
+                            '</ul>',
+                        '</div>',
+                    '</div>',
+                '</div>',
+                '<div class="footer">',
+                    '<button id="submit" class="submit">' + _('Save') + '</button>',
+                '</div>',
+            '</div>'
+            ].join(''));
 
-            var data = $.extend({
-              projectName: "Project name",
-              scale: 1,
-              unit: 'px',
-              colorFormat: 'color-hex'
-            }, data);
+        var data = $.extend({
+          projectName: "Project name",
+          scale: 1,
+          unit: 'px',
+          colorFormat: 'color-hex'
+        }, data);
 
-            var id = getDesignResolutionID(data.scale, data.unit);
+        var id = getDesignResolutionID(data.scale, data.unit);
 
-            getProjectNames(data);
+        getProjectNames(data);
 
-             $('.resolution input').change(function(){
-                var $this = $(this),
-                    id = $this.val(),
-                    scaleWidthUnit = getScaleWidthUnit(id);
+        $('.resolution input').change(function(){
+          var $this = $(this),
+          id = $this.val(),
+          scaleWidthUnit = getScaleWidthUnit(id);
 
-                if(!scaleWidthUnit) return false;
-                $('input[name=scale]').val(scaleWidthUnit.scale);
-                $('input[name=unit]').val(scaleWidthUnit.unit);
-            });
+          if(!scaleWidthUnit) return false;
+          $('input[name=scale]').val(scaleWidthUnit.scale);
+          $('input[name=unit]').val(scaleWidthUnit.unit);
+        });
 
-            checkResolution(id);
-            $('#' + data.colorFormat).click();
+        checkResolution(id);
+        $('#' + data.colorFormat).click();
 
-            if(id == 'custom'){
-              $('input[name=scale]').val(data.scale);
-              $('input[name=unit]').val(data.unit);
-            }
+        if(id == 'custom'){
+          $('input[name=scale]').val(data.scale);
+          $('input[name=unit]').val(data.unit);
+        }
 
-            bindSelectBoxClicks();
 
-            $('input[name=scale]').keypress(function(event){
-              var eventObj = event || e,
-              keyCode = eventObj.keyCode || eventObj.which;
+        $('input[name=scale]').keypress(function(event){
+          var eventObj = event || e,
+          keyCode = eventObj.keyCode || eventObj.which;
 
-              if ((keyCode >= 48 && keyCode <= 57) || keyCode == 46)
-                return true;
-              else
-                return false;
-            });
+          if ((keyCode >= 48 && keyCode <= 57) || keyCode == 46)
+            return true;
+          else
+            return false;
+        });
 
-            $('input[name=projectName]').keypress(function(event){
-              var eventObj = event || e,
-              keyCode = eventObj.keyCode || eventObj.which;
+        $('input[name=unit]').keypress(function(event){
+          var eventObj = event || e,
+          keyCode = eventObj.keyCode || eventObj.which;
 
-              if ((keyCode >= 48 && keyCode <= 57) || keyCode == 46)
-                return true;
-              else
-                return false;
-            });
+          if ((keyCode >= 65 && keyCode <= 90) || (keyCode >= 97 && keyCode <= 122) || keyCode == 47)
+            return true;
+          else
+            return false;
+        });
 
-            $('input[name=unit]').keypress(function(event){
-              var eventObj = event || e,
-              keyCode = eventObj.keyCode || eventObj.which;
+        $('input[type=text]').keyup(function(){
+          var scale = $('input[name=scale]').val(),
+          unit = $('input[name=unit]').val();
 
-              if ((keyCode >= 65 && keyCode <= 90) || (keyCode >= 97 && keyCode <= 122) || keyCode == 47)
-                return true;
-              else
-                return false;
-            });
+          if(scale && unit){
+            checkResolution(getDesignResolutionID(scale, unit));
+            $('.resolution ul').scrollTop(0);
+            var scrollTop = $('.resolution input:checked').parent().parent().position().top;
+            $('.resolution ul').scrollTop(scrollTop);
+          }
+        })
+        .focus(function () {
+          this.style.imeMode = 'disabled';
+        })
+        .blur(function(){
+          var scale = $('input[name=scale]').val(),
+          unit = $('input[name=unit]').val(),
+          projectName = $('input[name=projectName]').val();
 
-            $('input[type=text]').keyup(function(){
-              var scale = $('input[name=scale]').val(),
-              unit = $('input[name=unit]').val();
+          if (!scale) {
+            $('input[name=scale]').val(1);
+          }
 
-              if(scale && unit){
-                checkResolution(getDesignResolutionID(scale, unit));
-                $('.resolution ul').scrollTop(0);
-                var scrollTop = $('.resolution input:checked').parent().parent().position().top;
-                $('.resolution ul').scrollTop(scrollTop);
-              }
-            })
-            .focus(function () {
-              this.style.imeMode = 'disabled';
-            })
-            .blur(function(){
-              var scale = $('input[name=scale]').val(),
-              unit = $('input[name=unit]').val(),
-              projectName = $('input[name=projectName]').val();
+          if (!unit) {
+            $('input[name=unit]').val('px');
+          }
 
-              if (!scale) {
-                $('input[name=scale]').val(1);
-              }
+          if (!projectName) {
+            $('input[name=projectName]').val('Project name');
+          }
+        });
 
-              if (!unit) {
-                $('input[name=unit]').val('px');
-              }
+        $("#submit").click(submit);
 
-              if (!projectName) {
-                $('input[name=projectName]').val('Project name');
-              }
-            });
-
-            $("#submit").click(submit);
-
-            $('.container').show();
-        };
+        $('.container').show();
+        bindSelectBoxClicks();
+    };
     </script>
   </head>
   <body></body>

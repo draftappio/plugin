@@ -950,16 +950,17 @@ DraftApp.extend({
       data.colorFormat = this.configs.colorFormat;
     }
 
-    data.authHeaders             = this.readAuthHeaders();
-    logger.debug("settingsPanel(): accessToken: " + data.authHeaders.accessToken);
-    // data.authHeaders.accessToken = this.toJSString(data.authHeaders.accessToken);
-    // data.authHeaders.client      = this.toJSString(data.authHeaders.client);
-    // data.authHeaders.expiry      = this.toJSString(data.authHeaders.expiry);
-    // data.authHeaders.uid         = this.toJSString(data.authHeaders.uid);
-
     var response = api.get("/projects/project_names", {});
     data.projectNames = response.body;
-    if (!response) return false;
+    if (!response) {
+      this.loginPanel();
+      return false;
+    }
+
+    logger.debug("settingsPanel(): data.projectName: " + data.projectName);
+    logger.debug("settingsPanel(): data.scale: " + data.scale);
+    logger.debug("settingsPanel(): data.unit: " + data.unit);
+    logger.debug("settingsPanel(): data.colorFormat: " + data.colorFormat);
 
     return this.SMPanel({
       width: 340,
