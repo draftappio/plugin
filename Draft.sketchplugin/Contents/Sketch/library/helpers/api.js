@@ -57,22 +57,20 @@ Api.prototype.request = function(method, path, params) {
   // [req setValue:DraftApp.version forHTTPHeaderField:"X-Sketch-Plugin-Version"];
   [req setValue:"application/json" forHTTPHeaderField:"Content-Type"];
 
-  // if (DraftApp.isAuthHeaderExist()) {
-    var authHeaders = DraftApp.readAuthHeaders();
-    var token = authHeaders.accessToken;
-    var client = authHeaders.client;
-    var expiry = authHeaders.expiry;
-    var uid = authHeaders.uid;
+  var authHeaders = DraftApp.readAuthHeaders();
+  var token = authHeaders.accessToken;
+  var client = authHeaders.client;
+  var expiry = authHeaders.expiry;
+  var uid = authHeaders.uid;
 
-    logger.info("api.request() accessToken: " + token);
+  logger.info("api.request() accessToken: " + token);
 
-    logger.info("Setting request auth headers");
-    [req setValue:token forHTTPHeaderField:"access-token"];
-    [req setValue:"Bearer" forHTTPHeaderField:"token-type"];
-    [req setValue:client forHTTPHeaderField:"client"];
-    [req setValue:expiry forHTTPHeaderField:"expiry"];
-    [req setValue:uid forHTTPHeaderField:"uid"];
-  // }
+  logger.info("Setting request auth headers");
+  [req setValue:token forHTTPHeaderField:"access-token"];
+  [req setValue:"Bearer" forHTTPHeaderField:"token-type"];
+  [req setValue:client forHTTPHeaderField:"client"];
+  [req setValue:expiry forHTTPHeaderField:"expiry"];
+  [req setValue:uid forHTTPHeaderField:"uid"];
 
   if (params && method == "POST") {
     logger.debug("params: " + JSON.stringify(params));
@@ -86,8 +84,6 @@ Api.prototype.request = function(method, path, params) {
 
   logger.debug("res: " + res);
 
-  // FIXME: Res is null when 401, this needs checking,
-  // as it causes the following block not to be executed
   if (error.value() && api.is401(error) && res) {
     var dataString = NSString.alloc().initWithData_encoding(res, NSUTF8StringEncoding);
     logger.error(dataString);

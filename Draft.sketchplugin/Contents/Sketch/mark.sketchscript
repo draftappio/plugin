@@ -66,5 +66,5 @@ function commandLoginLogout(context) {
 }
 
 function commandVisit(context) {
-  NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("https://draftapp.io"));
+  NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("http://draftapp.io"));
 }

@@ -121,7 +121,7 @@ DraftApp.extend({
       //     }),
       launchButton = addButton( NSMakeRect(404, 14, 20, 20), "Launch Draft", "icon-launch",
           function(sender){
-            NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("https://draftapp.io"));
+            NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("http://draftapp.io"));
           }),
       settingsButton = addButton( NSMakeRect(452, 14, 20, 20), "Settings", "icon-settings",
           function(sender){
