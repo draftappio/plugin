@@ -56,27 +56,27 @@ DraftApp.extend({
     }
 
     switch (command) {
-      case "mark-overlays":
-        this.markOverlays();
-        break;
-      case "lite-sizes":
-        this.liteSizes();
-        break;
-      case "lite-spacings":
-        this.liteSpacings();
-        break;
-      case "lite-properties":
-        this.liteProperties();
-        break;
-      case "mark-sizes":
-        this.markSizes();
-        break;
-      case "mark-spacings":
-        this.markSpacings();
-        break;
-      case "mark-properties":
-        this.markProperties();
-        break;
+      // case "mark-overlays":
+        // this.markOverlays();
+        // break;
+      // case "lite-sizes":
+        // this.liteSizes();
+        // break;
+      // case "lite-spacings":
+        // this.liteSpacings();
+        // break;
+      // case "lite-properties":
+        // this.liteProperties();
+        // break;
+      // case "mark-sizes":
+        // this.markSizes();
+        // break;
+      // case "mark-spacings":
+        // this.markSpacings();
+        // break;
+      // case "mark-properties":
+        // this.markProperties();
+        // break;
       case "mark-note":
         this.markNote();
         break;
@@ -108,6 +108,7 @@ DraftApp.extend({
           this.settingsPanel();
         } else {
           this.export();
+          // this.exportDonePanel();
         }
         break;
     }
@@ -1021,7 +1022,7 @@ DraftApp.extend({
       }
     });
   },
-  actionPanel: function() {
+  actionPanel: function(text) {
     var self = this,
     data = {};
     logger.debug("In Action Panel");
@@ -1029,7 +1030,19 @@ DraftApp.extend({
       url: this.pluginSketch + "/panel/action.html",
       width: 304,
       height: 134,
-      data,
+      data: text,
+      callback: function( data ){}
+    });
+  },
+  exportDonePanel: function() {
+    var self = this,
+    data = {};
+    logger.debug("In Export Done Panel");
+    return this.SMPanel({
+      url: this.pluginSketch + "/panel/export_done.html",
+      width: 490,
+      height: 359,
+      data: data,
       callback: function( data ){}
     });
   },
@@ -2457,11 +2470,11 @@ DraftApp.extend({
             var response = api.post("/projects", { project: parsedData });
             logger.debug("RESPONSEE: " + response.statusCode);
 
-            // if (response.statusCode.toString().match(/4\d+/)) {
-              // message = "Project data is sucessfully sent to Draft.";
-            // } else {
-              // message = "There is a problem sending the data, please try again!";
-            // }
+            if (response.statusCode.toString().match(/4\d+/)) {
+              message = "There is a problem sending the data, please try again!";
+            } else {
+              message = "Project data is sucessfully sent to Draft.";
+            }
 
             // FIXME: Implement API error handling
             // if (response == undefined) {
@@ -2481,9 +2494,6 @@ DraftApp.extend({
 
         if( self.wantsStop === true ){
           coscript.setShouldKeepAround(false);
-          // var action = actionPanel.windowScriptObject();
-          // logger.debug("trying to open action panel");
-          // action.evaluateWebScript("action('" + message + "')");
           return interval.cancel();
         }
       });

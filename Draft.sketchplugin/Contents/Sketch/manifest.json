@@ -9,45 +9,17 @@
       "script": "mark.sketchscript"
     },
     {
-      "name": "Add Note",
-      "identifier": "commandNote",
-      "shortcut": "ctrl shift 1",
-      "handler" : "commandNote",
-      "script": "mark.sketchscript"
-    },
-    {
-      "name": "Add Overlay",
-      "identifier": "commandOverlays",
-      "shortcut": "ctrl shift 2",
-      "handler" : "commandOverlays",
-      "script": "mark.sketchscript"
-    },
-    {
-      "name": "Add Property",
-      "identifier": "commandProperties",
-      "shortcut": "ctrl shift 3",
-      "handler" : "commandProperties",
-      "script": "mark.sketchscript"
-    },
-    {
-      "name": "Add Size",
-      "identifier": "commandSizes",
-      "shortcut": "ctrl shift 4",
-      "handler" : "commandSizes",
-      "script": "mark.sketchscript"
-    },
-    {
-      "name": "Add Spacing",
-      "identifier": "commandSpacings",
-      "shortcut": "ctrl shift 5",
-      "handler" : "commandSpacings",
-      "script": "mark.sketchscript"
-    },
-    {
       "name": "Export to Draft",
       "identifier": "commandExport",
       "shortcut": "ctrl shift e",
       "handler" : "commandExport",
+      "script": "mark.sketchscript"
+    },
+    {
+      "name": "Add Note",
+      "identifier": "commandNote",
+      "shortcut": "ctrl shift 1",
+      "handler" : "commandNote",
       "script": "mark.sketchscript"
     },
     {
@@ -92,20 +64,15 @@
     "shortcut" : "",
     "items" : [
       "commandToolBar",
+      "commandExport",
+      "commandVisit",
       "-",
       "commandColor",
       "commandExportable",
-      "commandExport",
       "-",
       "commandNote",
-      "commandOverlays",
-      "commandProperties",
-      "commandSizes",
-      "commandSpacings",
-      "commandSettings",
       "-",
-      "commandVisit",
-      "commandSetting",
+      "commandSettings",
       "commandLoginLogout"
     ]
   },
