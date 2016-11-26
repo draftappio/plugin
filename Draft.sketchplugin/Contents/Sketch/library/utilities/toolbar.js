@@ -14,7 +14,7 @@ DraftApp.extend({
       ToolBar.setTitleVisibility(NSWindowTitleHidden);
       ToolBar.setTitlebarAppearsTransparent(true);
 
-      ToolBar.setFrame_display(NSMakeRect(0, 0, 494, 48), false);
+      ToolBar.setFrame_display(NSMakeRect(0, 0, 340, 48), false);
       ToolBar.setMovableByWindowBackground(true);
       ToolBar.becomeKeyWindow();
       ToolBar.setLevel(NSFloatingWindowLevel);
@@ -39,6 +39,11 @@ DraftApp.extend({
         button.setButtonType(NSMomentaryChangeButton)
           button.setCOSJSTargetFunction(callAction);
         button.setAction("callAction:");
+
+        if (name == 'logo') {
+          // button.isEnabled(false);
+          // button.alpha = 1;
+        }
         return button;
       },
       addImage = function(rect, name){
@@ -47,96 +52,98 @@ DraftApp.extend({
         view.setImage(image);
         return view;
       },
-      closeButton = addButton( NSMakeRect(14, 14, 20, 20), "Close toolbar", "icon-close",
+      logoButton = addButton( NSMakeRect(20, 15, 20, 20), "DraftApp", "logo",
+          function(sender){
+          }),
+      closeButton = addButton( NSMakeRect(60, 15, 20, 20), "Close toolbar", "icon-close",
           function(sender){
             coscript.setShouldKeepAround(false);
             // threadDictionary.removeObjectForKey(identifier);
             ToolBar.close();
           }),
-      overlayButton = addButton( NSMakeRect(64, 14, 20, 20), "Add Overlay", "icon-overlay",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "mark-overlays");
-          }),
-      sizesButton = addButton( NSMakeRect(112, 14, 20, 20), "Mark Sizes", "icon-sizes",
-          function(sender){
-            self.updateContext();
-            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
-              self.init(self.context, "mark-sizes");
-            }
-            else{
-              self.init(self.context, "lite-sizes");
-            }
-          }),
-      spacingsButton = addButton( NSMakeRect(112, 14, 20, 20), "Add Spacing", "icon-spacings",
-          function(sender){
-            self.updateContext();
-            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
-              self.init(self.context, "mark-spacings");
-            }
-            else{
-              self.init(self.context, "lite-spacings");
-            }
-          }),
-      propertiesButton = addButton( NSMakeRect(160, 14, 20, 20), "Add Property", "icon-properties",
-          function(sender){
-            self.updateContext();
-            if(NSEvent.modifierFlags() == NSAlternateKeyMask){
-              self.init(self.context, "mark-properties");
-            }
-            else{
-              self.init(self.context, "lite-properties");
-            }
-
-          }),
-      notesButton = addButton( NSMakeRect(208, 14, 20, 20), "Add Note", "icon-notes",
+      notesButton = addButton( NSMakeRect(100, 15, 20, 20), "Add Note", "icon-notes",
           function(sender){
             self.updateContext();
             self.init(self.context, "mark-note");
           }),
-      exportableButton = addButton( NSMakeRect(258, 14, 20, 20), "Add Slice", "icon-slice",
+      exportableButton = addButton( NSMakeRect(140, 15, 20, 20), "Add Slice", "icon-slice",
           function(sender){
             self.updateContext();
             self.init(self.context, "exportable");
           }),
-      colorsButton = addButton( NSMakeRect(306, 14, 20, 20), "Add Color", "icon-colors",
+      colorsButton = addButton( NSMakeRect(180, 15, 20, 20), "Add Color", "icon-colors",
           function(sender){
             self.updateContext();
             self.init(self.context, "color");
           }),
-      exportButton = addButton( NSMakeRect(354, 14, 20, 20), "Export To Draft", "icon-export",
+      exportButton = addButton( NSMakeRect(220, 15, 20, 20), "Export To Draft", "icon-export",
           function(sender){
             self.updateContext();
             self.init(self.context, "export");
           }),
-      // hiddenButton = addButton( NSMakeRect(452, 14, 20, 20), "icon-hidden",
-      //     function(sender){
-      //       self.updateContext();
-      //       self.init(self.context, "hidden");
-      //     }),
+      launchButton = addButton( NSMakeRect(260, 15, 20, 20), "Launch Draft", "icon-launch",
+          function(sender){
+            NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("http://draftapp.io"));
+          }),
+      settingsButton = addButton( NSMakeRect(300, 15, 20, 20), "Settings", "icon-settings",
+          function(sender){
+            self.updateContext();
+            self.init(self.context, "settings");
+          }),
       // lockedButton = addButton( NSMakeRect(500, 14, 20, 20), "icon-locked",
       //     function(sender){
       //       self.updateContext();
       //       self.init(self.context, "locked");
       //     }),
-      launchButton = addButton( NSMakeRect(404, 14, 20, 20), "Launch Draft", "icon-launch",
-          function(sender){
-            NSWorkspace.sharedWorkspace().openURL(NSURL.URLWithString("http://draftapp.io"));
-          }),
-      settingsButton = addButton( NSMakeRect(452, 14, 20, 20), "Settings", "icon-settings",
-          function(sender){
-            self.updateContext();
-            self.init(self.context, "settings");
-          }),
-      divider1 = addImage( NSMakeRect(48, 8, 2, 32), "divider"),
-      divider2 = addImage( NSMakeRect(388, 8, 2, 32), "divider"),
-      divider3 = addImage( NSMakeRect(436, 8, 2, 32), "divider");
+      // overlayButton = addButton( NSMakeRect(64, 14, 20, 20), "Add Overlay", "icon-overlay",
+      //     function(sender){
+      //       self.updateContext();
+      //       self.init(self.context, "mark-overlays");
+      //     }),
+      // sizesButton = addButton( NSMakeRect(112, 14, 20, 20), "Mark Sizes", "icon-sizes",
+      //     function(sender){
+      //       self.updateContext();
+      //       if(NSEvent.modifierFlags() == NSAlternateKeyMask){
+      //         self.init(self.context, "mark-sizes");
+      //       }
+      //       else{
+      //         self.init(self.context, "lite-sizes");
+      //       }
+      //     }),
+      // spacingsButton = addButton( NSMakeRect(112, 14, 20, 20), "Add Spacing", "icon-spacings",
+      //     function(sender){
+      //       self.updateContext();
+      //       if(NSEvent.modifierFlags() == NSAlternateKeyMask){
+      //         self.init(self.context, "mark-spacings");
+      //       }
+      //       else{
+      //         self.init(self.context, "lite-spacings");
+      //       }
+      //     }),
+      // propertiesButton = addButton( NSMakeRect(160, 14, 20, 20), "Add Property", "icon-properties",
+      //     function(sender){
+      //       self.updateContext();
+      //       if(NSEvent.modifierFlags() == NSAlternateKeyMask){
+      //         self.init(self.context, "mark-properties");
+      //       }
+      //       else{
+      //         self.init(self.context, "lite-properties");
+      //       }
+      //
+      //     }),
+      // hiddenButton = addButton( NSMakeRect(160, 14, 20, 20), "icon-hidden",
+      //     function(sender){
+      //       self.updateContext();
+      //       self.init(self.context, "hidden");
+      //     }),
+      divider1 = addImage( NSMakeRect(50, 8, 1, 32), "divider");
 
+      contentView.addSubview(logoButton);
       contentView.addSubview(closeButton);
-      contentView.addSubview(overlayButton);
+      // contentView.addSubview(overlayButton);
       // contentView.addSubview(sizesButton);
-      contentView.addSubview(spacingsButton);
-      contentView.addSubview(propertiesButton);
+      // contentView.addSubview(spacingsButton);
+      // contentView.addSubview(propertiesButton);
 
       contentView.addSubview(notesButton);
       contentView.addSubview(exportableButton);
@@ -149,10 +156,7 @@ DraftApp.extend({
       contentView.addSubview(settingsButton);
 
       contentView.addSubview(divider1);
-      contentView.addSubview(divider2);
-      // contentView.addSubview(divider3);
 
-      logger.debug("In TOOLBAR LAST LINES");
       // threadDictionary[identifier] = ToolBar;
 
       ToolBar.center();

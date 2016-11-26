@@ -10,6 +10,7 @@
     <link href="assets/css/app.css" rel="stylesheet">
     <script type="text/javascript" src="assets/js/jquery-2.2.4.min.js"></script>
     <script type="text/javascript" src="assets/js/common.js"></script>
+    <script type="text/javascript" src="assets/js/color_classifier.js"></script>
     <script type="text/javascript">
     <!--
     var init = function(data) {
@@ -63,17 +64,25 @@
 
         $.each(add, function(index, addColor){
             var classEdit = (!index)? ' edit selected': '',
-                colorID = addColor['argb-hex'];
+                colorID = addColor['argb-hex'],
+                result_name = '';
 
             if( checkColors[colorID] ) return false;
 
-            colorsHTML.push(
-               '<div class="color-item' + classEdit + '">',
-                    '<div class="color"><em style="background: ' + addColor['css-rgba'] + ';"></em></div>',
-                    '<div class="color-name">Untitled' + ( index || '' ) + '</div>',
-                    '<div class="color-name-edit"><input data-colors="' + encodeURI(JSON.stringify(addColor)) + '" type="text" name="color-name" value="Untitled' + ( index || '' ) + '"></div>',
-                '</div>'
-                );
+            var classifier = new ColorClassifier();
+
+            get_dataset("assets/js/color_dataset.json", function (data){
+              classifier.learn(data);
+              result_name = classifier.classify(colorID);
+
+              colorsHTML.push(
+                 '<div class="color-item' + classEdit + '">',
+                      '<div class="color"><em style="background: ' + addColor['css-rgba'] + ';"></em></div>',
+                      '<div class="color-name">' + ( result_name || '' ) + '</div>',
+                      '<div class="color-name-edit"><input data-colors="' + encodeURI(JSON.stringify(addColor)) + '" type="text" name="color-name" value="' + ( result_name || '' ) + '"></div>',
+                  '</div>'
+                  );
+            });
         });
 
         $.each(data.list, function(index, color){
@@ -185,6 +194,23 @@
 
             SMAction(colorNames);
         }
+    }
+
+    function get_dataset(url, callback)
+    {
+      var data = [];
+      $.ajax({
+        dataType: "json",
+        url: url,
+        async: false,
+        data: data,
+        success: function(points) {
+          for (var i = 0; i < points.length; ++i) {
+            data.push(new Point(points[i]["x"], points[i]["y"], points[i]["z"], points[i]["label"]));
+          }
+          callback(data);
+        }
+      });
     }
     // $(function(){
     //     init({list:[],add:[]});

@@ -22,7 +22,7 @@ DraftApp.extend({
       .stringByDeletingLastPathComponent()
       .stringByDeletingLastPathComponent();
     this.pluginSketch = this.pluginRoot + "/Contents/Sketch/library";
-    this.apiURL = "http://api.draftapp.io";
+    this.apiURL = "https://api2.draftapp.io";
     // this.apiURL = "http://localhost:3000";
 
     if(command == "toolbar"){
@@ -1876,8 +1876,8 @@ DraftApp.extend({
 
     return this.SMPanel({
       url: this.pluginSketch + "/panel/colors.html",
-      width: 240,
-      height: 323,
+      width: 320,
+      height: 523,
       state: 0,
       data: data,
       callback: function( data ){
@@ -2320,8 +2320,8 @@ DraftApp.extend({
     }
     return this.SMPanel({
       url: this.pluginSketch + "/panel/export.html",
-      width: 440,
-      height: 567,
+      width: 340,
+      height: 527,
       data: data,
       callback: function( data ){
         self.selectionArtboards = [];
