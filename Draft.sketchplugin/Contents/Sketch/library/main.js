@@ -1,6 +1,8 @@
 @import "library/main_app.js";
 @import "library/utilities/logger.js";
 @import "library/utilities/toolbar.js";
+@import "library/utilities/color_dataset.js";
+@import "library/utilities/color_classifier.js";
 @import "library/helpers/api.js";
 @import "library/helpers/config.js";
 @import "library/helpers/localization.js";
@@ -46,6 +48,10 @@ DraftApp.extend({
     }
 
     this.configs = this.getConfigs();
+
+    if (!this.configs || this.isEmpty(this.configs.colors)) {
+      this.parseDocColors();
+    }
 
     if(!this.isAuthHeaderExist() && command != "login-logout") {
       if(!this.loginPanel()) return false;
@@ -406,6 +412,9 @@ DraftApp.extend({
 
 // Help.js
 DraftApp.extend({
+  isEmpty: function(value) {
+    return (value == null || value.length === 0);
+  },
   mathHalf: function(number){
     return Math.round( number / 2 );
   },
@@ -1811,6 +1820,102 @@ DraftApp.extend({
 
 // colors.js
 DraftApp.extend({
+  parseDocColors: function() {
+    var self = this,
+    colors = [],
+    classifier = new ColorClassifier(),
+    colorData = [];
+
+    for (var i = 0; i < points.length; ++i) {
+      colorData.push(new Point(points[i]["x"], points[i]["y"], points[i]["z"], points[i]["label"]));
+    }
+    classifier.learn(colorData);
+
+    for (var i = 0; i < this.pages.length; i++) {
+      var page = this.pages[i];
+
+      for (var j = 0; j < page.artboards().length; j++) {
+        var artboard = page.artboards()[j];
+
+        for (var k = 0; k < artboard.layers().length; k++) {
+          var layer = artboard.layers()[k];
+          if ( !this.is(layer, MSSliceLayer) ) {
+            var layerStyle = layer.style(),
+              fills = this.getFills(layerStyle),
+              borders = this.getBorders(layerStyle);
+
+            if (fills.length > 0) {
+              for (var l = 0; l < fills.length; l++) {
+                var fill = fills[l];
+                if(fill.fillType != "gradient") {
+                  var isExist = colors.filter(function(color) {
+                    return color.color['argb-hex'] == fill.color["argb-hex"];
+                  });
+
+                  if (!isExist.length > 0) {
+                    var color_name = classifier.classify(fill.color["argb-hex"]);
+                    colors.push({name: color_name, color: fill.color});
+                  }
+                }
+                else {
+                  for (var w = 0; w < fill.gradient.colorStops.length; w++) {
+                    var gColor = fill.gradient.colorStops[w];
+
+                    var isExist = colors.filter(function(color) {
+                      return color.color["argb-hex"] == gColor.color['argb-hex'];
+                    });
+
+                    if (!isExist.length > 0) {
+                      var color_name = classifier.classify(gColor.color["argb-hex"]);
+                      colors.push({name: color_name, color: gColor.color});
+                    }
+                  }
+                }
+              }
+            }
+            if (borders.length > 0) {
+              for (var l = 0; l < borders.length; l++) {
+                var border = borders[l];
+
+                if(border.fillType != "gradient"){
+                  var isExist = colors.filter(function(color) {
+                    return color.color['argb-hex'] == border.color["argb-hex"];
+                  });
+
+                  if (!isExist.length > 0) {
+                    var color_name = classifier.classify(border.color["argb-hex"]);
+                    colors.push({name: color_name, color: border.color});
+                  }
+                } else {
+                  for (var w = 0; w < fill.gradient.colorStops.length; w++) {
+                    var gColor = fill.gradient.colorStops[w];
+
+                    var isExist = colors.filter(function(color) {
+                      return color.color["argb-hex"] == gColor.color["argb-hex"];
+                    });
+
+                    if (!isExist.length > 0) {
+                      var color_name = classifier.classify(gColor.color["argb-hex"]);
+                      colors.push(gColor.color);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Filter duplicate colors by name
+    colors = colors.filter((obj, pos, arr) => {
+      return arr.map(mapObj => mapObj["name"]).indexOf(obj["name"]) === pos;
+    });
+    self.configs = self.setConfigs({
+      colors: colors,
+      colorNames: self.colorNames(colors)
+    });
+  },
   getSelectionColor: function(){
     var self = this,
     colors = [];
@@ -1870,6 +1975,7 @@ DraftApp.extend({
     var self = this,
     data = {};
 
+    // TODO: Implement getting all project colors
     data.list = (this.configs.colors)? this.configs.colors: [];
 
     data.add = this.getSelectionColor();
