@@ -1975,7 +1975,6 @@ DraftApp.extend({
     var self = this,
     data = {};
 
-    // TODO: Implement getting all project colors
     data.list = (this.configs.colors)? this.configs.colors: [];
 
     data.add = this.getSelectionColor();

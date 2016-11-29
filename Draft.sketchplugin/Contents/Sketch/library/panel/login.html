@@ -71,7 +71,7 @@
             var signinForm = JSON.stringify($('#signin-form').serializeObject());
 
             $.ajax({
-              url: "http://api2.draftapp.io/auth/sign_in",
+              url: "https://api2.draftapp.io/auth/sign_in",
               type: 'POST',
               data: signinForm,
               mimeType: "multipart/form-data",
