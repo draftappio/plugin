@@ -258,7 +258,7 @@ DraftApp.extend({
       b: Math.round(color.blue() * 255),
       a: color.alpha(),
       "color-hex": color.immutableModelObject().stringValueWithAlpha(false) + " " + Math.round(color.alpha() * 100) + "%",
-      "argb-hex": "#" + this.toHex(color.alpha() * 255) + color.hexValue(),
+      "argb-hex": "#" + this.toHex(color.alpha() * 255) + color.immutableModelObject().stringValueWithAlpha(false).replace("#", ""),
       "css-rgba": "rgba(" + [
         Math.round(color.red() * 255),
         Math.round(color.green() * 255),
@@ -443,6 +443,14 @@ DraftApp.extend({
   toHex:function(c) {
     var hex = Math.round(c).toString(16).toUpperCase();
     return hex.length == 1 ? "0" + hex :hex;
+  },
+  hexToRgb:function(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: this.toHex(result[1]),
+      g: this.toHex(result[2]),
+      b: this.toHex(result[3])
+    } : null;
   },
   isIntersect: function(targetRect, layerRect){
     return !(
@@ -1373,7 +1381,8 @@ DraftApp.extend({
           break;
         case "line-height":
           if(!self.is(target, MSTextLayer)) return false;
-          content.push("line: " + self.convertUnit(target.lineSpacing(), true) + " (" + Math.round(target.lineSpacing() / target.fontSize() * 10) / 10  + ")" );
+          var defaultLineHeight = target.font().defaultLineHeightForFont();
+          content.push("line: " + self.convertUnit(target.lineHeight() || defaultLineHeight, true) + " (" + Math.round((target.lineHeight() || defaultLineHeight) / target.fontSize() * 10) / 10  + ")" );
           break;
         case "font-face":
           if(!self.is(target, MSTextLayer)) return false;
