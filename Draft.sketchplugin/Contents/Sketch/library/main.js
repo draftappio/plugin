@@ -1917,8 +1917,10 @@ DraftApp.extend({
     }
 
     // Filter duplicate colors by name
-    colors = colors.filter((obj, pos, arr) => {
-      return arr.map(mapObj => mapObj["name"]).indexOf(obj["name"]) === pos;
+    colors = colors.filter(function(obj, pos, arr) {
+      return arr.map(function(mapObj) {
+        mapObj["name"].indexOf(obj["name"]) === pos;
+      });
     });
     self.configs = self.setConfigs({
       colors: colors,
