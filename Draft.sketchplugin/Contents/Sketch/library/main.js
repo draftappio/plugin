@@ -481,17 +481,17 @@ DraftApp.extend({
     container = container || this.current,
     items;
 
-    if( (container.class && container.class() == __NSArrayI) ){
-      items = container;
-    }
-    else if(container.pages){
+    if(container.pages){
       items = container.pages();
     }
     else if( this.is( container, MSSharedStyleContainer ) || this.is( container, MSSharedTextStyleContainer ) ){
       items = container.objectsSortedByName();
     }
-    else{
+    else if( container.children ){
       items = container.children();
+    }
+    else{
+      items = container;
     }
 
     var queryResult = items.filteredArrayUsingPredicate(predicate);
@@ -2101,8 +2101,10 @@ DraftApp.extend({
 // export.js
 DraftApp.extend({
   slices: [],
-  sliceCache: {},
+  sliceCache: this.configs.sliceCache || {},
   maskCache: [],
+  colors: [],
+  fonts: [],
   hasExportSizes: function(layer){
     return layer.exportOptions().exportFormats().count() > 0;
   },
@@ -2221,7 +2223,7 @@ DraftApp.extend({
   },
   getExportable: function(layer, savePath){
     var self = this,
-    exportable = [],
+    exportables_attributes = [],
     size, sizes = layer.exportOptions().exportFormats(),
     sizesInter = sizes.objectEnumerator();
 
@@ -2260,16 +2262,27 @@ DraftApp.extend({
         suffix = "";
       }
 
-      this.exportImage({
+      var exportablePath = this.exportImage({
         layer: layer,
-        path: self.assetsPath,
+        // path: self.assetsPath,
         scale: scale,
         name: drawablePath + layer.name(),
         suffix: suffix,
         format: format
       });
 
-      exportable.push({
+      // var imageURL = NSURL.fileURLWithPath(exportableFile),
+      // imageData = NSData.dataWithContentsOfURL(imageURL),
+      // exportableContent = imageData.base64EncodedStringWithOptions(0),
+      // file = "";
+
+      // if (format == 'png') {
+      //   file = "data:image/" + format + ";base64," + exportableContent;
+      // } else {
+      //   file = "data:image/svg+xml;utf8," + exportableContent;
+      // }
+
+      exportables_attributes.push({
         name: self.toJSString(layer.name()),
         density: density,
         format: format,
@@ -2277,7 +2290,7 @@ DraftApp.extend({
       });
     }
 
-    return exportable;
+    return exportables_attributes;
   },
   checkSlice: function(layer, layerData, symbolLayer){
     var objectID = ( layerData.type == "symbol" )? this.toJSString(layer.symbolMaster().objectID()):
@@ -2299,21 +2312,21 @@ DraftApp.extend({
       }
 
       // TODO: Prepare base64 images to be posted with the /projects POST request
-      this.assetsPath = this.savePath + "/assets";
-      NSFileManager
-        .defaultManager()
-        .createDirectoryAtPath_withIntermediateDirectories_attributes_error(this.assetsPath, true, nil, nil);
+      // this.assetsPath = this.savePath + "/assets";
+      // NSFileManager
+        // .defaultManager()
+        // .createDirectoryAtPath_withIntermediateDirectories_attributes_error(this.assetsPath, true, nil, nil);
 
-      this.sliceCache[objectID] = layerData.exportable = this.getExportable(sliceLayer);
+      this.sliceCache[objectID] = layerData.exportables_attributes = this.getExportable(sliceLayer);
       this.slices.push({
         name: layerData.name,
         objectID: objectID,
         rect: layerData.rect,
-        exportable: layerData.exportable
+        exportables_attributes: layerData.exportables_attributes
       })
     }
     else if( this.sliceCache[objectID] ){
-      layerData.exportable = this.sliceCache[objectID];
+      layerData.exportables_attributes = this.sliceCache[objectID];
     }
   },
   checkSymbol: function(artboard, layer, layerData, data){
@@ -2361,23 +2374,6 @@ DraftApp.extend({
         this.removeLayer(tempGroup);
       }
     }
-  },
-  getSavePath: function(){
-    var filePath = this.document.fileURL()? this.document.fileURL().path().stringByDeletingLastPathComponent(): "~";
-    var fileName = this.document.displayName().stringByDeletingPathExtension();
-    var savePanel = NSSavePanel.savePanel();
-
-    savePanel.setTitle(_("Export spec"));
-    savePanel.setNameFieldLabel(_("Export to:"));
-    savePanel.setPrompt(_("Export"));
-    savePanel.setCanCreateDirectories(true);
-    savePanel.setNameFieldStringValue(fileName);
-
-    if (savePanel.runModal() != NSOKButton) {
-      return false;
-    }
-
-    return savePanel.URL().path();
   },
   exportPanel: function(){
     var self = this;
@@ -2486,6 +2482,7 @@ DraftApp.extend({
         colorFormat: self.configs.colorFormat,
         artboards_attributes: [],
         slices: [],
+        fonts: [],
         colors: []
       };
 
@@ -2532,15 +2529,16 @@ DraftApp.extend({
               // name = self.toSlug(self.toHTMLEncode(page.name()) + ' ' + self.toHTMLEncode(artboard.name()));
               slug = self.toSlug(page.name() + ' ' + artboard.name());
 
-            data.artboards_attributes[artboardIndex].pageName = self.toHTMLEncode(page.name());
+            data.artboards_attributes[artboardIndex].pageName     = self.toHTMLEncode(page.name());
             data.artboards_attributes[artboardIndex].pageObjectID = self.toJSString(page.objectID());
-            data.artboards_attributes[artboardIndex].name = self.toHTMLEncode(artboard.name());
-            data.artboards_attributes[artboardIndex].slug = slug;
-            data.artboards_attributes[artboardIndex].objectID = self.toJSString(artboard.objectID());
-            data.artboards_attributes[artboardIndex].width = artboardRect.width;
-            data.artboards_attributes[artboardIndex].height = artboardRect.height;
+            data.artboards_attributes[artboardIndex].name         = self.toHTMLEncode(artboard.name());
+            data.artboards_attributes[artboardIndex].slug         = slug;
+            data.artboards_attributes[artboardIndex].objectID     = self.toJSString(artboard.objectID());
+            data.artboards_attributes[artboardIndex].width        = artboardRect.width;
+            data.artboards_attributes[artboardIndex].height       = artboardRect.height;
+            data.artboards_attributes[artboardIndex].style        = artboard.CSSAttributes();
+            // data.artboards_attributes[artboardIndex].svgCode      = self.toJSString(artboard.SVGCode());
 
-            logger.debug("Encoding artboard image");
             var imageURL = NSURL.fileURLWithPath(self.exportImage({ layer: artboard, scale: 2, name: objectID })),
             imageData = NSData.dataWithContentsOfURL(imageURL),
             artboard_image = imageData.base64EncodedStringWithOptions(0);
@@ -2577,6 +2575,7 @@ DraftApp.extend({
 
             }
 
+            // TODO: Remove stringify and parse
             var stringifiedData = JSON.stringify(data);
             logger.debug("Project data to be sent: " + stringifiedData);
             var parsedData = JSON.parse(stringifiedData);
@@ -2586,11 +2585,11 @@ DraftApp.extend({
             var response = api.post("/projects", { project: parsedData });
             logger.debug("RESPONSEE: " + response.statusCode);
 
-            if (response.statusCode.toString().match(/4\d+/)) {
-              message = "There is a problem sending the data, please try again!";
-            } else {
-              message = "Project data is sucessfully sent to Draft.";
-            }
+            // if (response.statusCode.toString().match(/4\d+/)) {
+              // message = "There is a problem sending the data, please try again!";
+            // } else {
+              // message = "Project data is sucessfully sent to Draft.";
+            // }
 
             // FIXME: Implement API error handling
             // if (response == undefined) {
@@ -2659,6 +2658,10 @@ DraftApp.extend({
 
     document.saveArtboardOrSlice_toFile(slice, savePathName);
 
+    // FIXME: The ID here needs to be fixed!!!!!
+    var response = api.post("/projects/14/upload_slice",
+        { filePath: savePathName, fileName: options.name });
+
     return savePathName;
   },
   getLayer: function(artboard, layer, data, symbolLayer){
@@ -2716,11 +2719,22 @@ DraftApp.extend({
     if ( layerType == "text" ) {
       layerData.content = this.toHTMLEncode(layer.stringValue());
       layerData.color = this.colorToJSON(layer.textColor());
+      // TODO: Push fonts data
       layerData.fontSize = layer.fontSize();
       layerData.fontFace = this.toJSString(layer.fontPostscriptName());
       layerData.textAlign = TextAligns[layer.textAlignment()];
       layerData.letterSpacing = this.toJSNumber(layer.characterSpacing());
       layerData.lineHeight = layer.lineHeight();
+
+      font = {
+        fontSize: layerData.fontSize,
+        fontFace: layerData.fontFace,
+        textAlign: layerData.textAlign,
+        letterSpacing: layerData.letterSpacing,
+        lineHeight: layerData.lineHeight
+      };
+
+      this.fonts.push(font);
     }
 
     var layerCSSAttributes = layer.CSSAttributes(),
@@ -2734,6 +2748,11 @@ DraftApp.extend({
 
     this.checkMask(group, layer, layerData, layerStates);
     this.checkSlice(layer, layerData, symbolLayer);
+
+    this.configs = this.setConfigs({
+      sliceCache: this.sliceCache
+    });
+
     data.layers.push(layerData);
     this.checkSymbol(artboard, layer, layerData, data);
   }

@@ -68,7 +68,7 @@ DraftApp.extend({
   },
   resetAccessToken: function () {
     logger.info("config.resetAccessToken()");
-    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.token"];
+    [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.accesstoken"];
     [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.client"];
     [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.expiry"];
     [[NSUserDefaults standardUserDefaults] setObject:nil forKey:"draft.uid"];

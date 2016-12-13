@@ -53,15 +53,15 @@ Api.prototype.request = function(method, path, params) {
 
   // Request Headers
   [req setValue:"Sketch" forHTTPHeaderField:"User-Agent"];
+  [req setValue:"application/json" forHTTPHeaderField:"Content-Type"];
   // [req setValue:DraftApp.sketchVersion forHTTPHeaderField:"X-Sketch-Version"];
   // [req setValue:DraftApp.version forHTTPHeaderField:"X-Sketch-Plugin-Version"];
-  [req setValue:"application/json" forHTTPHeaderField:"Content-Type"];
 
   var authHeaders = DraftApp.readAuthHeaders();
-  var token = authHeaders.accessToken;
-  var client = authHeaders.client;
-  var expiry = authHeaders.expiry;
-  var uid = authHeaders.uid;
+  var token       = authHeaders.accessToken;
+  var client      = authHeaders.client;
+  var expiry      = authHeaders.expiry;
+  var uid         = authHeaders.uid;
 
   logger.info("api.request() accessToken: " + token);
 
@@ -73,24 +73,58 @@ Api.prototype.request = function(method, path, params) {
   [req setValue:uid forHTTPHeaderField:"uid"];
 
   if (params && method == "POST") {
-    logger.debug("params: " + JSON.stringify(params));
-    jsonParams = [NSJSONSerialization dataWithJSONObject:params options:NSJSONWritingPrettyPrinted error:nil];
-    req.HTTPBody = jsonParams;
+    var body = [NSMutableData data];
+
+    if (params.hasOwnProperty('filePath')) {
+      var error      = MOPointer.alloc().initWithValue(nil);
+      var filePath   = params.filePath;
+      var fileData   = [NSData dataWithContentsOfFile:filePath options:0 error:error];
+      // var uploadSize = [fileData length];
+      // var mimetype   = [NSString mimeTypeForPath:filePath];
+      logger.info("api.uploadWithFilePath() : "+ filePath);
+
+      var myboundary  = [NSString stringWithString:@"---------------------------14737809831466499882746641449"];
+      var contentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", myboundary];
+      [req setValue:contentType forHTTPHeaderField:@"Content-Type"];
+      // [req setValue:uploadSize forHTTPHeaderField:@"Content-Length"];
+
+      delete params.filePath;
+
+      if(!fileData) {
+        logger.error("Failed to read data: " + error.value());
+        return;
+      } else {
+        logger.info("File is successfully read");
+      }
+
+      [body appendData:[[NSString stringWithFormat:@"\r\n--%@\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
+      name = [NSString stringWithString:@"file"];
+      fileName = [NSString stringWithString:params.fileName];
+      [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@\r\n", name, fileName] dataUsingEncoding:NSUTF8StringEncoding]];
+      [body appendData:[[NSString stringWithString:@"Content-Type: image/png\r\n\r\n"] dataUsingEncoding:NSUTF8StringEncoding]];
+      [body appendData:[NSData dataWithData:fileData]];
+      [body appendData:[[NSString stringWithFormat:@"\r\n--%@--\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
+    } else {
+      jsonParams = [NSJSONSerialization dataWithJSONObject:params options:NSJSONWritingPrettyPrinted error:nil];
+      [body appendData:jsonParams];
+    }
+
+    [req setHTTPBody:body];
   }
 
-  var response = MOPointer.alloc().init(),
-    error = MOPointer.alloc().init(),
-    res = NSURLConnection.sendSynchronousRequest_returningResponse_error(req, response, error);
+  var response   = MOPointer.alloc().init();
+  var error      = MOPointer.alloc().init();
+  var res        = NSURLConnection.sendSynchronousRequest_returningResponse_error(req, response, error);
+  var dataString = NSString.alloc().initWithData_encoding(res, NSUTF8StringEncoding);
 
-  logger.debug("res: " + res);
+  logger.debug("Response: " + dataString);
 
   if (error.value() && api.is401(error) && res) {
-    var dataString = NSString.alloc().initWithData_encoding(res, NSUTF8StringEncoding);
-    logger.error(dataString);
+    logger.error("Error happened: " + dataString);
 
     var json = JSON.parse(dataString);
     // if(path != 'auth/sign_in') {
-    //   // utils.dealWithNetErrors(context,res);
+    //   // utils.dealWithNetErrors(context,response);
     //   // DraftApp.resetAccessToken();
     //   logger.debug("This is responsible");
     //   return false;
@@ -103,27 +137,25 @@ Api.prototype.request = function(method, path, params) {
     var statusCode = [[response value] statusCode];
     logger.info("Response code: " + statusCode);
 
-    if (statusCode != 200 && res) {
-      // this.dealWithNetErrors(res); //Alert Error if status code is not 200
+    if (statusCode != 200 && response) {
+      // this.dealWithNetErrors(response); //Alert Error if status code is not 200
       if (statusCode == 400 || statusCode == 440) {
         logger.debug("Status code is 400 || 440");
         // DraftApp.resetAccessToken(); // No need to reset
         // TODO: Return status code, so the app can report that back
+        DraftApp.resetAccessToken();
         // DraftApp.loginPanel();
       }
     }
 
-    var dataString = NSString.alloc().initWithData_encoding(res, NSUTF8StringEncoding);
     // Parse auth headers and save them
-    logger.debug("Response data: " + dataString);
-
     var headerFields = [[response value] allHeaderFields];
 
     var authHeaders = {};
     authHeaders.accessToken = headerFields["access-token"];
-    authHeaders.client = headerFields["client"];
-    authHeaders.expiry = headerFields["expiry"];
-    authHeaders.uid = headerFields["uid"];
+    authHeaders.client      = headerFields["client"];
+    authHeaders.expiry      = headerFields["expiry"];
+    authHeaders.uid         = headerFields["uid"];
 
     if (authHeaders.accessToken)
       DraftApp.saveAuthHeaders(authHeaders);
@@ -152,84 +184,3 @@ Api.prototype.is401 = function( error ) {
     return false;
   }
 };
-
-// Api.prototype.dealWithNetErrors = function(errorData) {
-//   logger.info("utils.dealWithNetErrors()");
-//   logger.error(errorData);
-//
-//   var alert = [[NSAlert alloc] init];
-//   var title = "Something went wrong...";
-//   var message = "Please ensure your internet isn\'t down or a firewall is not blocking any connections to Atomic.io.";
-//   var currentTime = new Date();
-//
-//   if (this.startingTime && (currentTime - this.startingTime > 60000 )){
-//     title = "Your export failed as it was taking too long";
-//     message = "You may be on a very slow connection or that export was huuuuge. Either way, the export failed, sorry.";
-//     this.isSlowConnection = true;
-//     this.startingTime = null;
-//   } else if(errorData) {
-//     var error = [[NSString alloc] initWithData:errorData encoding:NSUTF8StringEncoding];
-//     logger.error("Received an error from the server");
-//     try {
-//       errorJson = JSON.parse(error);
-//       title = errorJson.error;
-//       message = errorJson.message;
-//     } catch(e) {
-//       logger.error(e)
-//     }
-//   }
-//   [alert setMessageText:title];
-//   [alert setInformativeText:message];
-//   [alert addButtonWithTitle:'Close'];
-//   return responseCode = [alert runModal];
-// };
-
-// =========================================================
-
-// Api.prototype.upload = function(context, urls, exportData) {
-//   logger.info("api.upload()");
-//
-//   if (!urls && !exportData) return false;
-//
-//   var bundlePath = exportData[0],
-//   schemaPath = exportData[1];
-//
-//   return (api.uploadWithFilePath(context, urls.signedZippedUploadUrl, bundlePath)) &&
-//     (api.uploadWithFilePath(context, urls.signedSchemaUploadUrl, schemaPath));
-// };
-//
-// Api.prototype.uploadWithFilePath = function(context, url, filePath) {
-//   logger.info("api.uploadWithFilePath() : "+ filePath);
-//
-//   var error = MOPointer.alloc().initWithValue(nil);
-//   var fileData = [NSData dataWithContentsOfFile:filePath options:8 error:error];
-//   // utils.uploadBundleSize = [fileData length];
-//
-//   if(!fileData) {
-//     logger.error("failed to read data: " + error.value());
-//     return;
-//   }
-//
-//   var request = NSMutableURLRequest.requestWithURL(NSURL.URLWithString(url));
-//   [request setHTTPMethod:"PUT"];
-//
-//   var body = [NSMutableData data];
-//   [body appendData:fileData];
-//   [request setHTTPBody:body];
-//
-//   var response = MOPointer.alloc().init();
-//   var error = MOPointer.alloc().init();
-//   var res = NSURLConnection.sendSynchronousRequest_returningResponse_error(request, response, error);
-//   var dataString = NSString.alloc().initWithData_encoding(res, NSUTF8StringEncoding);
-//
-//   logger.debug(dataString)
-//
-//   if (error.value() == nil && res != nil) {
-//     var statusCode = [[response value] statusCode];
-//     return statusCode == 200;
-//   } else {
-//     // utils.dealWithNetErrors(context,res);
-//     return false;
-//   }
-//
-// };
