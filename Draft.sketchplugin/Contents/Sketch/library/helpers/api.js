@@ -88,8 +88,6 @@ Api.prototype.request = function(method, path, params) {
       [req setValue:contentType forHTTPHeaderField:@"Content-Type"];
       // [req setValue:uploadSize forHTTPHeaderField:@"Content-Length"];
 
-      delete params.filePath;
-
       if(!fileData) {
         logger.error("Failed to read data: " + error.value());
         return;
@@ -97,13 +95,22 @@ Api.prototype.request = function(method, path, params) {
         logger.info("File is successfully read");
       }
 
-      [body appendData:[[NSString stringWithFormat:@"\r\n--%@\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
+      [body appendData:[[NSString stringWithFormat:@"--%@\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
+
+      if (params.objectId) {
+        object_id = [NSString stringWithString:@"object_id"];
+        [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@\r\n\r\n", object_id] dataUsingEncoding:NSUTF8StringEncoding]];
+        [body appendData:[[NSString stringWithFormat:@"%@\r\n", params.objectId] dataUsingEncoding:NSUTF8StringEncoding]];
+        [body appendData:[[NSString stringWithFormat:@"--%@\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
+      }
+
       name = [NSString stringWithString:@"file"];
       fileName = [NSString stringWithString:params.fileName];
       [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@\r\n", name, fileName] dataUsingEncoding:NSUTF8StringEncoding]];
       [body appendData:[[NSString stringWithString:@"Content-Type: image/png\r\n\r\n"] dataUsingEncoding:NSUTF8StringEncoding]];
       [body appendData:[NSData dataWithData:fileData]];
-      [body appendData:[[NSString stringWithFormat:@"\r\n--%@--\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
+      [body appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+      [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", myboundary] dataUsingEncoding:NSUTF8StringEncoding]];
     } else {
       jsonParams = [NSJSONSerialization dataWithJSONObject:params options:NSJSONWritingPrettyPrinted error:nil];
       [body appendData:jsonParams];

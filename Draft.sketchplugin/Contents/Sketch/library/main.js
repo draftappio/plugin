@@ -963,6 +963,7 @@ DraftApp.extend({
 
     if (this.configs) {
       data.projectName = this.configs.projectName;
+      data.projectId   = this.configs.projectId;
       data.scale       = this.configs.scale;
       data.unit        = this.configs.unit;
       data.colorFormat = this.configs.colorFormat;
@@ -1867,16 +1868,18 @@ DraftApp.extend({
                   }
                 }
                 else {
-                  for (var w = 0; w < fill.gradient.colorStops.length; w++) {
-                    var gColor = fill.gradient.colorStops[w];
+                  if (fill.gradient) {
+                    for (var w = 0; w < fill.gradient.colorStops.length; w++) {
+                      var gColor = fill.gradient.colorStops[w];
 
-                    var isExist = colors.filter(function(color) {
-                      return color.color["argb-hex"] == gColor.color['argb-hex'];
-                    });
+                      var isExist = colors.filter(function(color) {
+                        return color.color["argb-hex"] == gColor.color['argb-hex'];
+                      });
 
-                    if (!isExist.length > 0) {
-                      var color_name = classifier.classify(gColor.color["argb-hex"]);
-                      colors.push({name: color_name, color: gColor.color});
+                      if (!isExist.length > 0) {
+                        var color_name = classifier.classify(gColor.color["argb-hex"]);
+                        colors.push({name: color_name, color: gColor.color});
+                      }
                     }
                   }
                 }
@@ -1896,16 +1899,18 @@ DraftApp.extend({
                     colors.push({name: color_name, color: border.color});
                   }
                 } else {
-                  for (var w = 0; w < fill.gradient.colorStops.length; w++) {
-                    var gColor = fill.gradient.colorStops[w];
+                  if (fill.gradient) {
+                    for (var w = 0; w < fill.gradient.colorStops.length; w++) {
+                      var gColor = fill.gradient.colorStops[w];
 
-                    var isExist = colors.filter(function(color) {
-                      return color.color["argb-hex"] == gColor.color["argb-hex"];
-                    });
+                      var isExist = colors.filter(function(color) {
+                        return color.color["argb-hex"] == gColor.color["argb-hex"];
+                      });
 
-                    if (!isExist.length > 0) {
-                      var color_name = classifier.classify(gColor.color["argb-hex"]);
-                      colors.push(gColor.color);
+                      if (!isExist.length > 0) {
+                        var color_name = classifier.classify(gColor.color["argb-hex"]);
+                        colors.push(gColor.color);
+                      }
                     }
                   }
                 }
@@ -2101,7 +2106,7 @@ DraftApp.extend({
 // export.js
 DraftApp.extend({
   slices: [],
-  sliceCache: this.configs.sliceCache || {},
+  sliceCache: {},
   maskCache: [],
   colors: [],
   fonts: [],
@@ -2223,7 +2228,7 @@ DraftApp.extend({
   },
   getExportable: function(layer, savePath){
     var self = this,
-    exportables_attributes = [],
+    exportables = [],
     size, sizes = layer.exportOptions().exportFormats(),
     sizesInter = sizes.objectEnumerator();
 
@@ -2282,15 +2287,15 @@ DraftApp.extend({
       //   file = "data:image/svg+xml;utf8," + exportableContent;
       // }
 
-      exportables_attributes.push({
+      exportables.push({
         name: self.toJSString(layer.name()),
         density: density,
         format: format,
-        path: drawablePath + layer.name() + suffix + "." + format
+        path: exportablePath
       });
     }
 
-    return exportables_attributes;
+    return exportables;
   },
   checkSlice: function(layer, layerData, symbolLayer){
     var objectID = ( layerData.type == "symbol" )? this.toJSString(layer.symbolMaster().objectID()):
@@ -2317,16 +2322,16 @@ DraftApp.extend({
         // .defaultManager()
         // .createDirectoryAtPath_withIntermediateDirectories_attributes_error(this.assetsPath, true, nil, nil);
 
-      this.sliceCache[objectID] = layerData.exportables_attributes = this.getExportable(sliceLayer);
+      this.sliceCache[objectID] = layerData.exportables = this.getExportable(sliceLayer);
       this.slices.push({
         name: layerData.name,
         objectID: objectID,
         rect: layerData.rect,
-        exportables_attributes: layerData.exportables_attributes
+        exportables: layerData.exportables
       })
     }
     else if( this.sliceCache[objectID] ){
-      layerData.exportables_attributes = this.sliceCache[objectID];
+      layerData.exportables = this.sliceCache[objectID];
     }
   },
   checkSymbol: function(artboard, layer, layerData, data){
@@ -2494,7 +2499,7 @@ DraftApp.extend({
         if (Math.round(idx / self.allCount * 100) < 99 ) {
           processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Processing layer %@ of %@", [idx, self.allCount]) + "')");
         } else {
-          processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Sending data to Draft..") + "')");
+          processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Sending project data to Draft..") + "')");
         }
         idx++;
 
@@ -2536,14 +2541,16 @@ DraftApp.extend({
             data.artboards_attributes[artboardIndex].objectID     = self.toJSString(artboard.objectID());
             data.artboards_attributes[artboardIndex].width        = artboardRect.width;
             data.artboards_attributes[artboardIndex].height       = artboardRect.height;
-            data.artboards_attributes[artboardIndex].style        = artboard.CSSAttributes();
+            // TODO: Loop on all artboar's layers and get thir styles
+            data.artboards_attributes[artboardIndex].style        = self.toJSString(artboard.CSSAttributes());
             // data.artboards_attributes[artboardIndex].svgCode      = self.toJSString(artboard.SVGCode());
 
-            var imageURL = NSURL.fileURLWithPath(self.exportImage({ layer: artboard, scale: 2, name: objectID })),
-            imageData = NSData.dataWithContentsOfURL(imageURL),
-            artboard_image = imageData.base64EncodedStringWithOptions(0);
+          processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Sending layer data to Draft..") + "')");
+            var artboard_image_url = self.exportImage({ layer: artboard, scale: 2, name: objectID, isArtboard: true });
+            // imageData = NSData.dataWithContentsOfURL(imageURL),
+            // artboard_image = imageData.base64EncodedStringWithOptions(0);
 
-            data.artboards_attributes[artboardIndex].artboard_image = 'data:image/png;base64,' + artboard_image;
+            // data.artboards_attributes[artboardIndex].artboard_image = artboard_image_url;
             var newData =  JSON.parse(JSON.stringify(data));
             newData.artboards_attributes = [data.artboards_attributes[artboardIndex]];
 
@@ -2643,12 +2650,12 @@ DraftApp.extend({
       scale: 1,
       name: "preview",
       suffix: "",
-      format: "png"
+      format: "png",
+      isArtboard: false
     }),
     document = this.document,
     slice = MSExportRequest.exportRequestsFromExportableLayer(options.layer).firstObject(),
     savePathName = [];
-    logger.debug("path:" + this.toJSString(NSTemporaryDirectory()));
 
     slice.scale = options.scale;
     slice.format = options.format;
@@ -2658,11 +2665,17 @@ DraftApp.extend({
 
     document.saveArtboardOrSlice_toFile(slice, savePathName);
 
-    // FIXME: The ID here needs to be fixed!!!!!
-    var response = api.post("/projects/14/upload_slice",
-        { filePath: savePathName, fileName: options.name });
+    if (options.isArtboard) {
+      var response = api.post("/projects/" + this.configs.projectId + "/upload_artboard_or_slice",
+          { filePath: savePathName, fileName: options.name, objectId: options.name });
+    } else {
+      var response = api.post("/projects/" + this.configs.projectId + "/upload_artboard_or_slice",
+          { filePath: savePathName, fileName: options.name });
+    }
 
-    return savePathName;
+    var url = "";
+    if (response && response.body) { url = response.body.url; }
+    return url;
   },
   getLayer: function(artboard, layer, data, symbolLayer){
     var artboardRect = artboard.absoluteRect(),
@@ -2749,9 +2762,9 @@ DraftApp.extend({
     this.checkMask(group, layer, layerData, layerStates);
     this.checkSlice(layer, layerData, symbolLayer);
 
-    this.configs = this.setConfigs({
-      sliceCache: this.sliceCache
-    });
+    // this.configs = this.setConfigs({
+    //   sliceCache: this.sliceCache
+    // });
 
     data.layers.push(layerData);
     this.checkSymbol(artboard, layer, layerData, data);
