@@ -24,7 +24,7 @@ DraftApp.extend({
       .stringByDeletingLastPathComponent()
       .stringByDeletingLastPathComponent();
     this.pluginSketch = this.pluginRoot + "/Contents/Sketch/library";
-    this.apiURL = "https://api2.draftapp.io";
+    this.apiURL = "https://api.draftapp.io";
     // this.apiURL = "http://localhost:3000";
 
     if(command == "toolbar"){
@@ -2479,6 +2479,7 @@ DraftApp.extend({
       var idx = 1,
       artboardIndex = 0,
       layerIndex = 0,
+      artboardStyle = "",
       exporting = false,
       data = {
         slug: self.configs.projectName,
@@ -2523,6 +2524,17 @@ DraftApp.extend({
               data.artboards_attributes[artboardIndex] // Save to data
               );
 
+          // Producing artboard style
+          var css = [];
+          for(var i = 0; i < layer.CSSAttributes().count(); i++) {
+            var c = layer.CSSAttributes()[i]
+              if(! /\/\*/.exec(c) ) css.push(self.toJSString(c));
+          }
+          
+          if(css.length > 0) {
+            var layerName = layer.name().replace(/[^A-Za-z\u00C0-\u00ff]/g,''); // Converted to camel case
+            artboardStyle += "." + layerName + " {\n " + css.join("\n ") + "\n}\n\n";
+          }
 
           layerIndex++;
           exporting = false;
@@ -2541,11 +2553,10 @@ DraftApp.extend({
             data.artboards_attributes[artboardIndex].objectID     = self.toJSString(artboard.objectID());
             data.artboards_attributes[artboardIndex].width        = artboardRect.width;
             data.artboards_attributes[artboardIndex].height       = artboardRect.height;
-            // TODO: Loop on all artboar's layers and get thir styles
-            data.artboards_attributes[artboardIndex].style        = self.toJSString(artboard.CSSAttributes());
+            data.artboards_attributes[artboardIndex].style        = artboardStyle;
             // data.artboards_attributes[artboardIndex].svgCode      = self.toJSString(artboard.SVGCode());
 
-          processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Sending layer data to Draft..") + "')");
+            processing.evaluateWebScript("processing('"  + Math.round(idx / self.allCount * 100) +  "%', '" + _("Sending layer data to Draft..") + "')");
             var artboard_image_url = self.exportImage({ layer: artboard, scale: 2, name: objectID, isArtboard: true });
             // imageData = NSData.dataWithContentsOfURL(imageURL),
             // artboard_image = imageData.base64EncodedStringWithOptions(0);
@@ -2565,6 +2576,11 @@ DraftApp.extend({
 
             if(self.configs.colors && self.configs.colors.length > 0){
               data.colors = self.configs.colors;
+            }
+
+            logger.debug('FOOOONTS:' + self.fonts);
+            if(self.fonts && self.fonts.length > 0){
+              data.fonts = self.fonts;
             }
 
             if(self.configs.exportOption){
